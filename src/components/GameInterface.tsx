@@ -9,6 +9,8 @@ import { toast } from "sonner";
 interface GameInterfaceProps {
   onBack: () => void;
   onViewStats: () => void;
+  isPracticeMode?: boolean;     // New prop
+  onPracticeComplete?: () => void; // New prop
 }
 
 type GameMode = 'single-visual' | 'single-audio' | 'dual';
@@ -38,12 +40,27 @@ interface GameSession {
   audioCorrectRejections?: number;
 }
 
-const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
-  const [gameMode, setGameMode] = useState<GameMode>('single-visual');
-  const [gameState, setGameState] = useState<GameState>('setup');
-  const [nLevel, setNLevel] = useState(2);
+const PRACTICE_MODE = 'single-visual' as GameMode;
+const PRACTICE_N_LEVEL = 1; // 1-Back for practice
+const PRACTICE_NUM_TRIALS = 7; // Short session
+
+const GameInterface = ({
+  onBack,
+  onViewStats,
+  isPracticeMode = false,
+  onPracticeComplete
+}: GameInterfaceProps) => {
+  const [gameMode, setGameMode] = useState<GameMode>(
+    isPracticeMode ? PRACTICE_MODE : 'single-visual'
+  );
+  const [gameState, setGameState] = useState<GameState>('setup'); // Keep setup initially to show parameters
+  const [nLevel, setNLevel] = useState<number>(
+    isPracticeMode ? PRACTICE_N_LEVEL : 2
+  );
   const [currentTrial, setCurrentTrial] = useState(0);
-  const [numTrials, setNumTrials] = useState(20);
+  const [numTrials, setNumTrials] = useState<number>(
+    isPracticeMode ? PRACTICE_NUM_TRIALS : 20
+  );
   const [stimulusDurationMs, setStimulusDurationMs] = useState(3000);
   const [audioEnabled, setAudioEnabled] = useState(true);
   
@@ -118,6 +135,16 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   }, [audioEnabled]);
 
   const endSession = useCallback(() => {
+    if (isPracticeMode) {
+      toast.success("Practice Complete! Well done!", { duration: 3000 });
+      if (onPracticeComplete) {
+        onPracticeComplete();
+      }
+      // Consider calling resetGame() or navigating away if onPracticeComplete is not guaranteed
+      // For now, assuming onPracticeComplete handles navigation or next steps.
+      return;
+    }
+
     setGameState('results');
     
     let visualCorrect = 0;
@@ -267,9 +294,32 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
         duration: 4000,
       });
     }
-  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, numTrials, nLevel, gameMode, setNLevel]);
+  }, [
+    isPracticeMode, // Added
+    onPracticeComplete, // Added
+    visualMatches,
+    audioMatches,
+    userVisualResponses,
+    userAudioResponses,
+    responseTimes,
+    numTrials,
+    nLevel,
+    gameMode,
+    setNLevel
+  ]);
 
   const handleTrialTimeout = useCallback(() => {
+    if (isPracticeMode) {
+      const trialIndex = currentTrial;
+      const visualExpected = visualMatches[trialIndex];
+      // Since practice mode is 'single-visual'
+      if (visualExpected) {
+        toast.error("Missed Match!", { duration: 1500 });
+      } else {
+        toast.info("Correct: No match there.", { duration: 1500 });
+      }
+    }
+
     setIsWaitingForResponse(false);
     setCurrentPosition(null);
     setCurrentLetter('');
@@ -316,15 +366,17 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     const responseTime = Date.now() - trialStartTime;
     setResponseTimes(prev => [...prev, responseTime]);
     
-    const trialIndexToUpdate = currentTrial; // currentTrial is the index of the trial being responded to
+    const trialIndexToUpdate = currentTrial;
 
     let currentVisualResponseMade = visualResponseMadeThisTrial;
     let currentAudioResponseMade = audioResponseMadeThisTrial;
+    let visualUserRespondedLate = false; // To track if this is a late response for visual
 
     if (responseType === 'visual') {
+      visualUserRespondedLate = userVisualResponses[trialIndexToUpdate]; // Check if already true
       setUserVisualResponses(prevResponses => {
         const newResponses = [...prevResponses];
-        if (trialIndexToUpdate < newResponses.length) { // Check bounds
+        if (trialIndexToUpdate < newResponses.length) {
           newResponses[trialIndexToUpdate] = true;
         }
         return newResponses;
@@ -332,15 +384,29 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       setVisualResponseMadeThisTrial(true);
       currentVisualResponseMade = true;
     } else { // responseType === 'audio'
+      // Similar logic for audio if practice mode expands
       setUserAudioResponses(prevResponses => {
         const newResponses = [...prevResponses];
-        if (trialIndexToUpdate < newResponses.length) { // Check bounds
+        if (trialIndexToUpdate < newResponses.length) {
           newResponses[trialIndexToUpdate] = true;
         }
         return newResponses;
       });
       setAudioResponseMadeThisTrial(true);
       currentAudioResponseMade = true;
+    }
+
+    if (isPracticeMode && responseType === 'visual' && !visualUserRespondedLate) {
+      // Provide feedback only for the first response to this stimulus type in the trial
+      const visualExpected = visualMatches[trialIndexToUpdate];
+      const visualResponse = true; // User just responded visually
+
+      if (visualExpected && visualResponse) {
+        toast.success("Correct Match!", { duration: 1500 });
+      } else if (!visualExpected && visualResponse) {
+        toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
+      }
+      // Misses and Correct Rejections (no key press) for practice are handled in handleTrialTimeout
     }
 
     const performTrialAdvancement = () => {
@@ -386,7 +452,10 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     gameMode,
     currentTrial,
     visualResponseMadeThisTrial,
-    audioResponseMadeThisTrial
+    audioResponseMadeThisTrial,
+    isPracticeMode, // Added
+    visualMatches, // Added for practice feedback
+    userVisualResponses // Added for practice feedback
   ]);
 
   // Effect to end session when all trials are completed
@@ -468,10 +537,14 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                   ].map(({ mode, title, desc }) => (
                     <div 
                       key={mode}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                        gameMode === mode ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setGameMode(mode)}
+                      className={`p-4 border-2 rounded-lg transition-all ${
+                        gameMode === mode ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      } ${isPracticeMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-gray-300'}`}
+                      onClick={() => {
+                        if (!isPracticeMode) {
+                          setGameMode(mode);
+                        }
+                      }}
                     >
                       <div className="font-semibold">{title}</div>
                       <div className="text-sm text-gray-600">{desc}</div>
@@ -493,8 +566,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setNLevel(Math.max(1, nLevel - 1))}
-                      disabled={nLevel <= 1}
+                      onClick={() => setNLevel(prev => Math.max(1, prev - 1))}
+                      disabled={isPracticeMode || nLevel <= 1}
                     >
                       -
                     </Button>
@@ -504,8 +577,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setNLevel(Math.min(8, nLevel + 1))}
-                      disabled={nLevel >= 8}
+                      onClick={() => setNLevel(prev => Math.min(8, prev + 1))}
+                      disabled={isPracticeMode || nLevel >= 8}
                     >
                       +
                     </Button>
@@ -522,7 +595,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                       variant="outline"
                       size="sm"
                       onClick={() => setNumTrials(prev => Math.max(10, prev - 5))}
-                      disabled={numTrials <= 10}
+                      disabled={isPracticeMode || numTrials <= 10}
                     >
                       -
                     </Button>
@@ -531,7 +604,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                       variant="outline"
                       size="sm"
                       onClick={() => setNumTrials(prev => Math.min(50, prev + 5))}
-                      disabled={numTrials >= 50}
+                      disabled={isPracticeMode || numTrials >= 50}
                     >
                       +
                     </Button>
@@ -546,7 +619,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                       variant="outline"
                       size="sm"
                       onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))}
-                      disabled={stimulusDurationMs <= 2000}
+                      disabled={isPracticeMode || stimulusDurationMs <= 2000}
                     >
                       -
                     </Button>
@@ -557,7 +630,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                       variant="outline"
                       size="sm"
                       onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))}
-                      disabled={stimulusDurationMs >= 4000}
+                      disabled={isPracticeMode || stimulusDurationMs >= 4000}
                     >
                       +
                     </Button>
