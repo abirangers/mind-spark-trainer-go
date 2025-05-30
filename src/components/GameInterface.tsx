@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Volume2, VolumeX, Play, Pause, BarChart3 } from "lucide-react";
+import { ArrowLeft, Volume2, VolumeX, Pause, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
 interface GameInterfaceProps {
@@ -349,7 +349,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
               onClick={startGame}
               className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg gap-2"
             >
-              <Play className="h-5 w-5" />
               Start Training Session
             </Button>
           </div>
