@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +50,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-  // Initialize audio context
   useEffect(() => {
     if (audioEnabled) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -63,12 +61,10 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     };
   }, [audioEnabled]);
 
-  // Play audio letter
   const playAudioLetter = useCallback((letter: string) => {
     if (!audioEnabled || !audioContextRef.current) return;
     
-    // Simple tone generation for letters (in real implementation, use pre-recorded audio)
-    const frequency = 200 + (letter.charCodeAt(0) - 65) * 50; // Different frequency per letter
+    const frequency = 200 + (letter.charCodeAt(0) - 65) * 50;
     const oscillator = audioContextRef.current.createOscillator();
     const gainNode = audioContextRef.current.createGain();
     
@@ -85,7 +81,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     oscillator.stop(audioContextRef.current.currentTime + 0.5);
   }, [audioEnabled]);
 
-  // Generate new trial stimulus
   const generateStimulus = useCallback(() => {
     const newPosition = Math.floor(Math.random() * 9);
     const newLetter = letters[Math.floor(Math.random() * letters.length)];
@@ -93,7 +88,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setVisualSequence(prev => [...prev, newPosition]);
     setAudioSequence(prev => [...prev, newLetter]);
     
-    // Check for matches
     const visualMatch = visualSequence.length >= nLevel && 
                        visualSequence[visualSequence.length - nLevel] === newPosition;
     const audioMatch = audioSequence.length >= nLevel && 
@@ -105,7 +99,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     return { newPosition, newLetter, visualMatch, audioMatch };
   }, [visualSequence, audioSequence, nLevel]);
 
-  // Start new trial
   const startTrial = useCallback(() => {
     const { newPosition, newLetter } = generateStimulus();
     
@@ -114,25 +107,21 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setIsWaitingForResponse(true);
     setTrialStartTime(Date.now());
     
-    // Play audio if enabled and in audio mode
     if ((gameMode === 'single-audio' || gameMode === 'dual') && audioEnabled) {
       playAudioLetter(newLetter);
     }
     
-    // Auto-advance after 3 seconds
     trialTimeoutRef.current = setTimeout(() => {
       handleTrialTimeout();
     }, 3000);
     
   }, [generateStimulus, gameMode, audioEnabled, playAudioLetter]);
 
-  // Handle trial timeout
   const handleTrialTimeout = useCallback(() => {
     setIsWaitingForResponse(false);
     setCurrentPosition(null);
     setCurrentLetter('');
     
-    // Record no response
     setUserVisualResponses(prev => [...prev, false]);
     setUserAudioResponses(prev => [...prev, false]);
     setResponseTimes(prev => [...prev, 3000]);
@@ -148,7 +137,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     });
   }, [totalTrials]);
 
-  // Handle user response
   const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
     if (!isWaitingForResponse) return;
     
@@ -182,11 +170,9 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     });
   }, [isWaitingForResponse, trialStartTime, totalTrials]);
 
-  // End session and calculate results
   const endSession = useCallback(() => {
     setGameState('results');
     
-    // Calculate accuracy
     let visualCorrect = 0;
     let audioCorrect = 0;
     
@@ -208,7 +194,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     
     const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
     
-    // Store session results
     const session: GameSession = {
       trials: totalTrials,
       nLevel,
@@ -219,16 +204,13 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       mode: gameMode
     };
     
-    // Save to localStorage
     const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
     sessions.push(session);
     localStorage.setItem('nback-sessions', JSON.stringify(sessions));
     
-    // Show results toast
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
   }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, totalTrials, nLevel, gameMode]);
 
-  // Start game session
   const startGame = () => {
     setGameState('playing');
     setCurrentTrial(0);
@@ -242,7 +224,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setTimeout(startTrial, 1000);
   };
 
-  // Reset game
   const resetGame = () => {
     setGameState('setup');
     if (trialTimeoutRef.current) {
@@ -363,97 +344,100 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     );
   }
 
-  // Game playing view
+  // Game playing view with new dark design
   if (gameState === 'playing') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+      <div className="min-h-screen bg-slate-900 p-4">
         <div className="container mx-auto max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={resetGame} className="gap-2">
+              <Button variant="outline" onClick={resetGame} className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-800">
                 <Pause className="h-4 w-4" />
                 Pause
               </Button>
-              <Badge variant="secondary" className="px-3 py-1">
+              <Badge variant="secondary" className="px-3 py-1 bg-slate-800 text-slate-300">
                 {nLevel}-Back {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Badge>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600">Trial</div>
+            <div className="text-right text-slate-300">
+              <div className="text-sm text-slate-400">Trial</div>
               <div className="text-2xl font-bold">{currentTrial + 1} / {totalTrials}</div>
             </div>
           </div>
 
           {/* Progress */}
           <div className="mb-8">
-            <Progress value={(currentTrial / totalTrials) * 100} className="h-2" />
+            <Progress value={(currentTrial / totalTrials) * 100} className="h-2 bg-slate-800" />
           </div>
 
-          {/* Game Area */}
-          <Card className="shadow-xl mb-8">
-            <CardContent className="p-8">
-              <div className="text-center space-y-8">
-                {/* Visual Grid */}
+          {/* Game Area with dark theme */}
+          <div className="bg-slate-800 rounded-lg p-8 mb-8 border border-slate-700">
+            <div className="space-y-8">
+              {/* Visual Grid */}
+              {(gameMode === 'single-visual' || gameMode === 'dual') && (
+                <div className="text-center">
+                  <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                    {[...Array(9)].map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-20 h-20 border-2 rounded-lg transition-all duration-200 ${
+                          currentPosition === index
+                            ? 'bg-blue-500 border-blue-400 shadow-lg shadow-blue-500/50'
+                            : 'bg-slate-700 border-slate-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Audio Display */}
+              {(gameMode === 'single-audio' || gameMode === 'dual') && (
+                <div className="text-center">
+                  <div className={`text-6xl font-bold transition-all duration-200 ${
+                    currentLetter ? 'text-blue-400' : 'text-slate-600'
+                  }`}>
+                    {currentLetter || '?'}
+                  </div>
+                </div>
+              )}
+
+              {/* Response Buttons with new design matching the reference */}
+              <div className="flex gap-6 justify-center pt-8">
                 {(gameMode === 'single-visual' || gameMode === 'dual') && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Visual Stimulus</h3>
-                    <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
-                      {[...Array(9)].map((_, index) => (
-                        <div
-                          key={index}
-                          className={`w-20 h-20 border-2 rounded-lg transition-all duration-200 ${
-                            currentPosition === index
-                              ? 'bg-blue-500 border-blue-600 shadow-lg scale-110'
-                              : 'bg-white border-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+                  <Button 
+                    size="lg"
+                    onClick={() => handleResponse('visual')}
+                    disabled={!isWaitingForResponse}
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 px-8 py-4 text-lg font-medium"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded border border-slate-500 flex items-center justify-center text-sm">👁</span>
+                      Position Match (A)
+                    </span>
+                  </Button>
                 )}
-
-                {/* Audio Display */}
                 {(gameMode === 'single-audio' || gameMode === 'dual') && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Audio Stimulus</h3>
-                    <div className={`text-6xl font-bold transition-all duration-200 ${
-                      currentLetter ? 'text-blue-600 scale-110' : 'text-gray-300'
-                    }`}>
-                      {currentLetter || '?'}
-                    </div>
-                  </div>
-                )}
-
-                {/* Response Buttons */}
-                {isWaitingForResponse && (
-                  <div className="space-y-4">
-                    <p className="text-gray-600">Press when current stimulus matches {nLevel} steps back</p>
-                    <div className="flex gap-4 justify-center">
-                      {(gameMode === 'single-visual' || gameMode === 'dual') && (
-                        <Button 
-                          size="lg"
-                          onClick={() => handleResponse('visual')}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          Visual Match
-                        </Button>
-                      )}
-                      {(gameMode === 'single-audio' || gameMode === 'dual') && (
-                        <Button 
-                          size="lg"
-                          onClick={() => handleResponse('audio')}
-                          className="bg-orange-600 hover:bg-orange-700"
-                        >
-                          Audio Match
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  <Button 
+                    size="lg"
+                    onClick={() => handleResponse('audio')}
+                    disabled={!isWaitingForResponse}
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 px-8 py-4 text-lg font-medium"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded border border-slate-500 flex items-center justify-center text-sm">🔊</span>
+                      Sound Match (L)
+                    </span>
+                  </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+
+              {isWaitingForResponse && (
+                <p className="text-center text-slate-400 text-sm">Press when current stimulus matches {nLevel} steps back</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
