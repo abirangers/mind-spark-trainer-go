@@ -51,6 +51,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const trialTimeoutRef = useRef<NodeJS.Timeout>();
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const startTrialRef = useRef<() => void>();
+  const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
@@ -141,7 +142,36 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     localStorage.setItem('nback-sessions', JSON.stringify(sessions));
     
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
-  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, numTrials, nLevel, gameMode]);
+
+    // Adaptive Difficulty Logic
+    const currentNLevel = nLevel; 
+    let nextNLevel = currentNLevel;
+    let adaptiveMessage = "";
+
+    if (overallAccuracy >= 80 && currentNLevel < 8) {
+      nextNLevel = currentNLevel + 1;
+      adaptiveMessage = `Congratulations! N-Level increased to ${nextNLevel}!`;
+    } else if (overallAccuracy < 60 && currentNLevel > 1) {
+      nextNLevel = currentNLevel - 1;
+      adaptiveMessage = `N-Level decreased to ${nextNLevel}. Keep practicing!`;
+    } else if (overallAccuracy >= 80 && currentNLevel === 8) {
+      adaptiveMessage = `You're at the max N-Level (${currentNLevel}) and performing excellently!`;
+    } else if (overallAccuracy < 60 && currentNLevel === 1) {
+      adaptiveMessage = `N-Level remains at ${currentNLevel}. Keep it up!`;
+    } else { // Maintained level (60-79%) or no change possible
+      adaptiveMessage = `N-Level maintained at ${currentNLevel}. Good effort!`;
+    }
+
+    if (nextNLevel !== currentNLevel) {
+      setNLevel(nextNLevel);
+    }
+
+    if (adaptiveMessage) {
+      toast(adaptiveMessage, {
+        duration: 4000,
+      });
+    }
+  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, numTrials, nLevel, gameMode, setNLevel]);
 
   const handleTrialTimeout = useCallback(() => {
     setIsWaitingForResponse(false);
@@ -218,17 +248,14 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       currentAudioResponseMade = true;
     }
     
-    const advanceTrial = () => {
-      setIsWaitingForResponse(false);
+    const performTrialAdvancement = () => {
+      // This function contains the logic to clear stimuli and schedule the next trial
       setCurrentPosition(null);
       setCurrentLetter('');
-      if (trialTimeoutRef.current) {
-        clearTimeout(trialTimeoutRef.current);
-      }
       setCurrentTrial(prev => {
         const next = prev + 1;
         if (next < numTrials) {
-          setTimeout(() => startTrialRef.current?.(), 1000); 
+          setTimeout(() => startTrialRef.current?.(), 1000); // Standard inter-trial interval
         } else {
           endSession();
         }
@@ -238,11 +265,24 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
 
     if (gameMode === 'dual') {
       if (currentVisualResponseMade && currentAudioResponseMade) {
-        advanceTrial();
+        setIsWaitingForResponse(false); // Stop waiting for inputs for this trial
+        if (trialTimeoutRef.current) {
+          clearTimeout(trialTimeoutRef.current); // Clear the main stimulus timeout
+        }
+        // Introduce a 750ms delay before clearing stimuli and advancing
+        postDualResponseDelayRef.current = setTimeout(() => {
+          performTrialAdvancement();
+        }, 750);
       }
-      // else, wait for the other response or timeout
-    } else { // single-visual or single-audio
-      advanceTrial();
+      // else, if only one response made in dual mode, do nothing yet.
+      // Still waiting for the other response or for the main trialTimeout.
+    } else { // single-visual or single-audio mode
+      setIsWaitingForResponse(false);
+      if (trialTimeoutRef.current) {
+        clearTimeout(trialTimeoutRef.current);
+      }
+      // For single modes, advance immediately (clear stimuli and then start inter-trial interval)
+      performTrialAdvancement();
     }
   }, [
     isWaitingForResponse, 
@@ -288,6 +328,9 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setGameState('setup');
     if (trialTimeoutRef.current) {
       clearTimeout(trialTimeoutRef.current);
+    }
+    if (postDualResponseDelayRef.current) {
+      clearTimeout(postDualResponseDelayRef.current);
     }
     if (synthRef.current && audioEnabled) { // Check audioEnabled
       synthRef.current.cancel();
