@@ -44,9 +44,12 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [trialStartTime, setTrialStartTime] = useState<number>(0);
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  const [visualResponseMadeThisTrial, setVisualResponseMadeThisTrial] = useState(false);
+  const [audioResponseMadeThisTrial, setAudioResponseMadeThisTrial] = useState(false);
   
   const trialTimeoutRef = useRef<NodeJS.Timeout>();
   const synthRef = useRef<SpeechSynthesis | null>(null);
+  const startTrialRef = useRef<() => void>();
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
@@ -139,11 +142,31 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
   }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, totalTrials, nLevel, gameMode]);
 
+  const handleTrialTimeout = useCallback(() => {
+    setIsWaitingForResponse(false);
+    setCurrentPosition(null);
+    setCurrentLetter('');
+    
+    setResponseTimes(prev => [...prev, 3000]);
+    
+    setCurrentTrial(prev => {
+      const next = prev + 1;
+      if (next < totalTrials) {
+        setTimeout(() => startTrialRef.current?.(), 1000);
+      } else {
+        endSession();
+      }
+      return next;
+    });
+  }, [totalTrials, endSession]);
+
   const startTrial = useCallback(() => {
     const { newPosition, newLetter } = generateStimulus();
     
     setCurrentPosition(newPosition);
     setCurrentLetter(newLetter);
+    setVisualResponseMadeThisTrial(false);
+    setAudioResponseMadeThisTrial(false);
     setIsWaitingForResponse(true);
     setTrialStartTime(Date.now());
     
@@ -157,25 +180,9 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     
   }, [generateStimulus, gameMode, audioEnabled, playAudioLetter, handleTrialTimeout]);
 
-  const handleTrialTimeout = useCallback(() => {
-    setIsWaitingForResponse(false);
-    setCurrentPosition(null);
-    setCurrentLetter('');
-    
-    setUserVisualResponses(prev => [...prev, false]);
-    setUserAudioResponses(prev => [...prev, false]);
-    setResponseTimes(prev => [...prev, 3000]);
-    
-    setCurrentTrial(prev => {
-      const next = prev + 1;
-      if (next < totalTrials) {
-        setTimeout(startTrial, 1000);
-      } else {
-        endSession();
-      }
-      return next;
-    });
-  }, [totalTrials, startTrial, endSession]);
+  useEffect(() => {
+    startTrialRef.current = startTrial;
+  }, [startTrial]);
   
   const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
     if (!isWaitingForResponse) return;
@@ -183,32 +190,69 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     const responseTime = Date.now() - trialStartTime;
     setResponseTimes(prev => [...prev, responseTime]);
     
+    const trialIndexToUpdate = currentTrial; // currentTrial is the index of the trial being responded to
+
+    let currentVisualResponseMade = visualResponseMadeThisTrial;
+    let currentAudioResponseMade = audioResponseMadeThisTrial;
+
     if (responseType === 'visual') {
-      setUserVisualResponses(prev => [...prev, true]);
-      setUserAudioResponses(prev => [...prev, false]);
-    } else {
-      setUserVisualResponses(prev => [...prev, false]);
-      setUserAudioResponses(prev => [...prev, true]);
+      setUserVisualResponses(prevResponses => {
+        const newResponses = [...prevResponses];
+        if (trialIndexToUpdate < newResponses.length) { // Check bounds
+          newResponses[trialIndexToUpdate] = true;
+        }
+        return newResponses;
+      });
+      setVisualResponseMadeThisTrial(true);
+      currentVisualResponseMade = true;
+    } else { // responseType === 'audio'
+      setUserAudioResponses(prevResponses => {
+        const newResponses = [...prevResponses];
+        if (trialIndexToUpdate < newResponses.length) { // Check bounds
+          newResponses[trialIndexToUpdate] = true;
+        }
+        return newResponses;
+      });
+      setAudioResponseMadeThisTrial(true);
+      currentAudioResponseMade = true;
     }
     
-    setIsWaitingForResponse(false);
-    setCurrentPosition(null);
-    setCurrentLetter('');
-    
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current);
-    }
-    
-    setCurrentTrial(prev => {
-      const next = prev + 1;
-      if (next < totalTrials) {
-        setTimeout(startTrial, 1000);
-      } else {
-        endSession();
+    const advanceTrial = () => {
+      setIsWaitingForResponse(false);
+      setCurrentPosition(null);
+      setCurrentLetter('');
+      if (trialTimeoutRef.current) {
+        clearTimeout(trialTimeoutRef.current);
       }
-      return next;
-    });
-  }, [isWaitingForResponse, trialStartTime, totalTrials, startTrial, endSession]);
+      setCurrentTrial(prev => {
+        const next = prev + 1;
+        if (next < totalTrials) {
+          setTimeout(() => startTrialRef.current?.(), 1000); 
+        } else {
+          endSession();
+        }
+        return next;
+      });
+    };
+
+    if (gameMode === 'dual') {
+      if (currentVisualResponseMade && currentAudioResponseMade) {
+        advanceTrial();
+      }
+      // else, wait for the other response or timeout
+    } else { // single-visual or single-audio
+      advanceTrial();
+    }
+  }, [
+    isWaitingForResponse, 
+    trialStartTime, 
+    totalTrials, 
+    endSession, 
+    gameMode, 
+    currentTrial, 
+    visualResponseMadeThisTrial, 
+    audioResponseMadeThisTrial
+  ]);
 
   // Add keyboard event listener
   useEffect(() => {
@@ -233,8 +277,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setAudioSequence([]);
     setVisualMatches([]);
     setAudioMatches([]);
-    setUserVisualResponses([]);
-    setUserAudioResponses([]);
+    setUserVisualResponses(Array(totalTrials).fill(false));
+    setUserAudioResponses(Array(totalTrials).fill(false));
     setResponseTimes([]);
     setTimeout(startTrial, 1000);
   };
