@@ -295,8 +295,8 @@ const GameInterface = ({
       });
     }
   }, [
-    isPracticeMode, // Added
-    onPracticeComplete, // Added
+    isPracticeMode,
+    onPracticeComplete,
     visualMatches,
     audioMatches,
     userVisualResponses,
@@ -305,7 +305,8 @@ const GameInterface = ({
     numTrials,
     nLevel,
     gameMode,
-    setNLevel
+    setNLevel,
+    // toast // Technically toast is a dependency if used within this callback
   ]);
 
   const handleTrialTimeout = useCallback(() => {
@@ -481,7 +482,7 @@ const GameInterface = ({
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, isWaitingForResponse, gameMode, handleResponse]);
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
     setGameState('playing');
     setCurrentTrial(0);
     setVisualSequence([]);
@@ -491,8 +492,33 @@ const GameInterface = ({
     setUserVisualResponses(Array(numTrials).fill(false));
     setUserAudioResponses(Array(numTrials).fill(false));
     setResponseTimes([]);
-    setTimeout(startTrial, 1000);
-  };
+    // The actual first trial is started by the useEffect that depends on gameState === 'playing'
+    // or directly if not using such an effect. Here, startTrial is called after a delay.
+    // If startTrial is the function that shows the first stimulus, this is fine.
+    setTimeout(() => startTrialRef.current?.(), 100); // Using startTrialRef for stability
+  }, [
+    setGameState, setCurrentTrial, setVisualSequence, setAudioSequence,
+    setVisualMatches, setAudioMatches, setUserVisualResponses,
+    setUserAudioResponses, setResponseTimes, numTrials,
+    // startTrial // startTrial (the function itself) is a dependency
+    // Since startTrial is memoized and startTrialRef points to it,
+    // depending on startTrialRef.current directly in useEffect is not ideal.
+    // The current setup uses startTrialRef.current?.() which is fine.
+    // For this useCallback, if startTrial is stable, it's okay. Given it's memoized, let's add it.
+    // However, startTrial itself depends on other states/callbacks.
+    // The most stable way is to ensure startTrial is correctly memoized and then use it,
+    // or use the ref if we are trying to avoid re-memoizing startGame too often.
+    // Let's assume startTrial (the memoized callback) is stable enough.
+    // Re-evaluating: startTrial is memoized, including it is correct.
+    startTrial
+  ]);
+
+  // useEffect to auto-start game in practice mode
+  useEffect(() => {
+    if (isPracticeMode && gameState === 'setup') {
+      startGame();
+    }
+  }, [isPracticeMode, gameState, startGame]);
 
   const resetGame = () => {
     setGameState('setup');
