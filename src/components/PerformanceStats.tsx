@@ -20,7 +20,7 @@ interface GameSession {
   audioAccuracy: number;
   averageResponseTime: number;
   mode: string;
-  timestamp?: number;
+  timestamp: string; // Changed to string
 }
 
 const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) => {
@@ -30,7 +30,20 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
   const sessions: GameSession[] = useMemo(() => {
     const stored = localStorage.getItem('nback-sessions');
     if (stored) {
-      return JSON.parse(stored);
+      try {
+        let parsedSessions: GameSession[] = JSON.parse(stored);
+        // Ensure all sessions have a timestamp for robust sorting.
+        // Filter out sessions without a valid timestamp before sorting if necessary.
+        parsedSessions.sort((a, b) => {
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+          return timeA - timeB;
+        });
+        return parsedSessions;
+      } catch (e) {
+        console.error("Error parsing sessions from localStorage", e);
+        // Fallback to demo data or empty array if parsing fails
+      }
     }
     
     // Generate demo data for visualization
@@ -46,11 +59,10 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
         audioAccuracy: Math.max(35, 75 - Math.random() * 20 + i * 1.5),
         averageResponseTime: Math.max(800, 1500 - i * 30 - Math.random() * 200),
         mode: ['single-visual', 'single-audio', 'dual'][Math.floor(Math.random() * 3)],
-        timestamp: now - (14 - i) * 24 * 60 * 60 * 1000 // Last 15 days
+        timestamp: new Date(now - (14 - i) * 24 * 60 * 60 * 1000).toISOString() // Use ISOString for demo
       });
     }
-    
-    return demoSessions;
+    return demoSessions; // Return demo data if 'stored' is null or parsing failed
   }, []);
 
   // Calculate statistics
@@ -79,8 +91,9 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
     const lastAvg = lastFive.reduce((sum, s) => sum + s.accuracy, 0) / lastFive.length;
     const improvementRate = lastAvg - firstAvg;
     
-    // Estimate total training time (20 trials * 4 seconds per trial)
-    const totalTrainingTime = totalSessions * 20 * 4 / 60; // minutes
+    // Calculate total training time
+    const totalTrialsCompleted = sessions.reduce((sum, s) => sum + s.trials, 0);
+    const totalTrainingTime = totalTrialsCompleted * 4 / 60; // minutes
     
     return {
       totalSessions,

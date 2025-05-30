@@ -79,7 +79,7 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
           <div className="space-y-4">
             <div className="text-center">
               {/* Keeping the static 2-Back example for now, or it could be removed/adjusted */}
-              <Badge variant="secondary" className="mb-4">Static 2-Back Example</Badge> 
+              <Badge variant="secondary" className="mb-4">Static 2-Back Example</Badge>
               <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto mb-4">
                 {[...Array(9)].map((_, index) => (
                   <div
@@ -123,7 +123,7 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
               when the current letter matches one from N steps back.
             </p>
             <p className="text-gray-600 text-md mb-4">
-              Below is a <strong>visual representation</strong> of an automated <strong>1-Back audio demo</strong>. 
+              Below is a <strong>visual representation</strong> of an automated <strong>1-Back audio demo</strong>.
               Imagine you are hearing these letters. "Match!" will appear when the current letter is the same as the one immediately before it.
             </p>
             <AudioDemo1Back />

@@ -27,7 +27,7 @@ const AudioDemo1Back = () => {
       } else {
         setIsMatch(false); // No match on the very first item
       }
-      
+
       if (currentIndexInSequence === DEMO_SEQUENCE.length - 1) {
         setLoopCount(prevLoopCount => prevLoopCount + 1);
       }
@@ -48,17 +48,17 @@ const AudioDemo1Back = () => {
 
   return (
     <div className="flex flex-col items-center my-4 p-4 border rounded-lg bg-gray-50">
-      <div 
+      <div
         className={`
-          w-24 h-24 border-2 rounded-lg flex items-center justify-center mb-4 
+          w-24 h-24 border-2 rounded-lg flex items-center justify-center mb-4
           transition-all duration-300 ease-in-out
           ${isMatch && currentLetter ? 'bg-green-100 border-green-500' : 'bg-white border-gray-300'}
         `}
       >
         {currentLetter && (
-          <span 
+          <span
             className={`
-              text-6xl font-bold 
+              text-6xl font-bold
               ${isMatch ? 'text-green-600' : 'text-orange-600'}
             `}
           >

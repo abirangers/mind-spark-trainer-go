@@ -53,12 +53,12 @@ const Index = () => {
   ];
 
   if (currentView === 'tutorial') {
-    return <Tutorial 
+    return <Tutorial
       onComplete={() => {
         localStorage.setItem('tutorialCompleted', 'true');
         setCurrentView('game');
-      }} 
-      onBack={() => setCurrentView('landing')} 
+      }}
+      onBack={() => setCurrentView('landing')}
     />;
   }
 
