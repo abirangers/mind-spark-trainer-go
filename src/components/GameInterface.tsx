@@ -29,7 +29,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [nLevel, setNLevel] = useState(2);
   const [currentTrial, setCurrentTrial] = useState(0);
-  const [totalTrials] = useState(20);
+  const [numTrials, setNumTrials] = useState(20); 
+  const [stimulusDurationMs, setStimulusDurationMs] = useState(3000); 
   const [audioEnabled, setAudioEnabled] = useState(true);
   
   // Game state
@@ -107,7 +108,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     let visualCorrect = 0;
     let audioCorrect = 0;
     
-    for (let i = 0; i < totalTrials; i++) {
+    for (let i = 0; i < numTrials; i++) {
       const visualExpected = visualMatches[i] || false;
       const audioExpected = audioMatches[i] || false;
       const visualResponse = userVisualResponses[i] || false;
@@ -117,8 +118,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       if (audioExpected === audioResponse) audioCorrect++;
     }
     
-    const visualAccuracy = (visualCorrect / totalTrials) * 100;
-    const audioAccuracy = (audioCorrect / totalTrials) * 100;
+    const visualAccuracy = (numTrials > 0 ? (visualCorrect / numTrials) * 100 : 0);
+    const audioAccuracy = (numTrials > 0 ? (audioCorrect / numTrials) * 100 : 0);
     const overallAccuracy = gameMode === 'dual' ? 
       (visualAccuracy + audioAccuracy) / 2 : 
       (gameMode === 'single-visual' ? visualAccuracy : audioAccuracy);
@@ -126,7 +127,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
     
     const session: GameSession = {
-      trials: totalTrials,
+      trials: numTrials,
       nLevel,
       accuracy: overallAccuracy,
       visualAccuracy,
@@ -140,25 +141,25 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     localStorage.setItem('nback-sessions', JSON.stringify(sessions));
     
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
-  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, totalTrials, nLevel, gameMode]);
+  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, numTrials, nLevel, gameMode]);
 
   const handleTrialTimeout = useCallback(() => {
     setIsWaitingForResponse(false);
     setCurrentPosition(null);
     setCurrentLetter('');
     
-    setResponseTimes(prev => [...prev, 3000]);
+    setResponseTimes(prev => [...prev, stimulusDurationMs]);
     
     setCurrentTrial(prev => {
       const next = prev + 1;
-      if (next < totalTrials) {
+      if (next < numTrials) {
         setTimeout(() => startTrialRef.current?.(), 1000);
       } else {
         endSession();
       }
       return next;
     });
-  }, [totalTrials, endSession]);
+  }, [numTrials, endSession, stimulusDurationMs]);
 
   const startTrial = useCallback(() => {
     const { newPosition, newLetter } = generateStimulus();
@@ -176,9 +177,9 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     
     trialTimeoutRef.current = setTimeout(() => {
       handleTrialTimeout();
-    }, 3000);
+    }, stimulusDurationMs);
     
-  }, [generateStimulus, gameMode, audioEnabled, playAudioLetter, handleTrialTimeout]);
+  }, [generateStimulus, gameMode, audioEnabled, playAudioLetter, handleTrialTimeout, stimulusDurationMs]);
 
   useEffect(() => {
     startTrialRef.current = startTrial;
@@ -226,7 +227,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       }
       setCurrentTrial(prev => {
         const next = prev + 1;
-        if (next < totalTrials) {
+        if (next < numTrials) {
           setTimeout(() => startTrialRef.current?.(), 1000); 
         } else {
           endSession();
@@ -246,7 +247,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   }, [
     isWaitingForResponse, 
     trialStartTime, 
-    totalTrials, 
+    numTrials, 
     endSession, 
     gameMode, 
     currentTrial, 
@@ -277,8 +278,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setAudioSequence([]);
     setVisualMatches([]);
     setAudioMatches([]);
-    setUserVisualResponses(Array(totalTrials).fill(false));
-    setUserAudioResponses(Array(totalTrials).fill(false));
+    setUserVisualResponses(Array(numTrials).fill(false));
+    setUserAudioResponses(Array(numTrials).fill(false));
     setResponseTimes([]);
     setTimeout(startTrial, 1000);
   };
@@ -371,6 +372,56 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium mb-2">Number of Trials</label>
+                  <div className="flex items-center gap-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setNumTrials(prev => Math.max(10, prev - 5))} 
+                      disabled={numTrials <= 10}
+                    >
+                      -
+                    </Button>
+                    <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">{numTrials}</Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setNumTrials(prev => Math.min(50, prev + 5))} 
+                      disabled={numTrials >= 50}
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">Adjust the total trials per session (10-50).</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Stimulus Duration</label>
+                  <div className="flex items-center gap-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))} 
+                      disabled={stimulusDurationMs <= 2000}
+                    >
+                      -
+                    </Button>
+                    <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
+                      {(stimulusDurationMs / 1000).toFixed(1)}s
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))} 
+                      disabled={stimulusDurationMs >= 4000}
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">Time each stimulus is shown (2.0s - 4.0s).</p>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium mb-2">Audio Settings</label>
                   <Button 
                     variant="outline" 
@@ -384,8 +435,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
 
                 <div className="pt-4 border-t">
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>• Trials: {totalTrials}</div>
-                    <div>• Duration: ~{Math.ceil(totalTrials * 4 / 60)} minutes</div>
+                    <div>• Trials: {numTrials}</div>
+                    <div>• Duration: ~{Math.ceil(numTrials * (stimulusDurationMs / 1000 + 1) / 60)} minutes</div>
                     <div>• Mode: {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
                   </div>
                 </div>
@@ -425,13 +476,13 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-600">Trial</div>
-              <div className="text-2xl font-bold">{currentTrial + 1} / {totalTrials}</div>
+              <div className="text-2xl font-bold">{currentTrial + 1} / {numTrials}</div>
             </div>
           </div>
 
           {/* Progress */}
           <div className="mb-8">
-            <Progress value={(currentTrial / totalTrials) * 100} className="h-2" />
+            <Progress value={(numTrials > 0 ? (currentTrial / numTrials) * 100 : 0)} className="h-2" />
           </div>
 
           {/* Game Area - keeping original white background */}
