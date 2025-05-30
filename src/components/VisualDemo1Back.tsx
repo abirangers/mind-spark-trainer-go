@@ -57,8 +57,8 @@ const VisualDemo1Back = () => {
             className={`
               w-16 h-16 border-2 rounded-lg flex items-center justify-center
               transition-all duration-300 ease-in-out
-              ${highlightedSquare === index 
-                ? (isMatch ? 'bg-green-400 border-green-600 shadow-lg' : 'bg-blue-500 border-blue-600 shadow-lg') 
+              ${highlightedSquare === index
+                ? (isMatch ? 'bg-green-400 border-green-600 shadow-lg' : 'bg-blue-500 border-blue-600 shadow-lg')
                 : 'bg-gray-100 border-gray-300'}
             `}
           >

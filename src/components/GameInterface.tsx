@@ -22,6 +22,20 @@ interface GameSession {
   audioAccuracy: number;
   averageResponseTime: number;
   mode: GameMode;
+  timestamp: string;
+
+  // New detailed counts (optional for backward compatibility with old data)
+  actualVisualMatches?: number;
+  visualHits?: number;
+  visualMisses?: number;
+  visualFalseAlarms?: number;
+  visualCorrectRejections?: number;
+
+  actualAudioMatches?: number;
+  audioHits?: number;
+  audioMisses?: number;
+  audioFalseAlarms?: number;
+  audioCorrectRejections?: number;
 }
 
 const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
@@ -29,8 +43,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [nLevel, setNLevel] = useState(2);
   const [currentTrial, setCurrentTrial] = useState(0);
-  const [numTrials, setNumTrials] = useState(20); 
-  const [stimulusDurationMs, setStimulusDurationMs] = useState(3000); 
+  const [numTrials, setNumTrials] = useState(20);
+  const [stimulusDurationMs, setStimulusDurationMs] = useState(3000);
   const [audioEnabled, setAudioEnabled] = useState(true);
   
   // Game state
@@ -72,18 +86,18 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const generateStimulus = useCallback(() => {
     const newPosition = Math.floor(Math.random() * 9);
     const newLetter = letters[Math.floor(Math.random() * letters.length)];
-    
+
     setVisualSequence(prev => [...prev, newPosition]);
     setAudioSequence(prev => [...prev, newLetter]);
-    
-    const visualMatch = visualSequence.length >= nLevel && 
+
+    const visualMatch = visualSequence.length >= nLevel &&
                        visualSequence[visualSequence.length - nLevel] === newPosition;
-    const audioMatch = audioSequence.length >= nLevel && 
+    const audioMatch = audioSequence.length >= nLevel &&
                       audioSequence[audioSequence.length - nLevel] === newLetter;
-    
+
     setVisualMatches(prev => [...prev, visualMatch]);
     setAudioMatches(prev => [...prev, audioMatch]);
-    
+
     return { newPosition, newLetter, visualMatch, audioMatch };
   }, [visualSequence, audioSequence, nLevel]);
 
@@ -108,16 +122,85 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     
     let visualCorrect = 0;
     let audioCorrect = 0;
+
+    // Initialize New Counters
+    let actualVisualMatches = 0;
+    let visualHits = 0;
+    let visualMisses = 0;
+    let visualFalseAlarms = 0;
+    let visualCorrectRejections = 0;
+
+    let actualAudioMatches = 0;
+    let audioHits = 0;
+    let audioMisses = 0;
+    let audioFalseAlarms = 0;
+    let audioCorrectRejections = 0;
+
+    console.log("--- Debugging Session End ---");
+    console.log("Game Mode:", gameMode);
+    console.log("N-Level:", nLevel);
+    console.log("Number of Trials Setting (numTrials):", numTrials);
+    // Log actual length of arrays to ensure they match numTrials
+    console.log("Length of visualMatches:", visualMatches.length);
+    console.log("Length of userVisualResponses:", userVisualResponses.length);
+
+    console.log("Expected Visual Matches (visualMatches):", JSON.stringify(visualMatches));
+    console.log("User Visual Responses (userVisualResponses):", JSON.stringify(userVisualResponses));
+
+    if (gameMode === 'dual' || gameMode === 'single-audio') {
+      console.log("Length of audioMatches:", audioMatches.length);
+      console.log("Length of userAudioResponses:", userAudioResponses.length);
+      console.log("Expected Audio Matches (audioMatches):", JSON.stringify(audioMatches));
+      console.log("User Audio Responses (userAudioResponses):", JSON.stringify(userAudioResponses));
+    }
     
     for (let i = 0; i < numTrials; i++) {
       const visualExpected = visualMatches[i] || false;
       const audioExpected = audioMatches[i] || false;
       const visualResponse = userVisualResponses[i] || false;
       const audioResponse = userAudioResponses[i] || false;
+
+      // Inside the for loop:
+      if (gameMode === 'single-visual' || gameMode === 'dual') {
+        console.log(`Trial ${i} (Visual): Expected: ${visualExpected}, UserResponded: ${visualResponse}, CorrectThisTrial: ${visualExpected === visualResponse}`);
+        if (visualExpected) actualVisualMatches++;
+        if (visualExpected && visualResponse) {
+          visualHits++;
+        } else if (visualExpected && !visualResponse) {
+          visualMisses++;
+        } else if (!visualExpected && visualResponse) {
+          visualFalseAlarms++;
+        } else if (!visualExpected && !visualResponse) {
+          visualCorrectRejections++;
+        }
+      }
+      if (gameMode === 'single-audio' || gameMode === 'dual') {
+        console.log(`Trial ${i} (Audio): Expected: ${audioExpected}, UserResponded: ${audioResponse}, CorrectThisTrial: ${audioExpected === audioResponse}`);
+        if (audioExpected) actualAudioMatches++;
+        if (audioExpected && audioResponse) {
+          audioHits++;
+        } else if (audioExpected && !audioResponse) {
+          audioMisses++;
+        } else if (!audioExpected && audioResponse) {
+          audioFalseAlarms++;
+        } else if (!audioExpected && !audioResponse) {
+          audioCorrectRejections++;
+        }
+      }
       
       if (visualExpected === visualResponse) visualCorrect++;
       if (audioExpected === audioResponse) audioCorrect++;
     }
+
+    let logMessage = `Trials: ${numTrials}. VisualCorrect: ${visualCorrect}.`;
+    if (gameMode === 'dual') {
+      logMessage += ` AudioCorrect: ${audioCorrect}. OverallAccuracy (for dual): ${((visualCorrect + audioCorrect) / (numTrials * 2) * 100).toFixed(1)}% (Note: overallAccuracy in stats is avg of individual accuracies).`;
+    } else if (gameMode === 'single-audio') {
+      logMessage = `Trials: ${numTrials}. AudioCorrect: ${audioCorrect}.`;
+    }
+    // For single-visual, the initial part of logMessage is sufficient.
+    console.log(logMessage);
+    console.log("--- End Debugging Session End ---");
     
     const visualAccuracy = (numTrials > 0 ? (visualCorrect / numTrials) * 100 : 0);
     const audioAccuracy = (numTrials > 0 ? (audioCorrect / numTrials) * 100 : 0);
@@ -134,7 +217,20 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       visualAccuracy,
       audioAccuracy,
       averageResponseTime: avgResponseTime,
-      mode: gameMode
+      mode: gameMode,
+      timestamp: new Date().toISOString(),
+
+      actualVisualMatches,
+      visualHits,
+      visualMisses,
+      visualFalseAlarms,
+      visualCorrectRejections,
+
+      actualAudioMatches,
+      audioHits,
+      audioMisses,
+      audioFalseAlarms,
+      audioCorrectRejections
     };
     
     const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
@@ -144,7 +240,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
 
     // Adaptive Difficulty Logic
-    const currentNLevel = nLevel; 
+    const currentNLevel = nLevel;
     let nextNLevel = currentNLevel;
     let adaptiveMessage = "";
 
@@ -184,9 +280,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       const next = prev + 1;
       if (next < numTrials) {
         setTimeout(() => startTrialRef.current?.(), 1000);
-      } else {
-        endSession();
       }
+      // No direct call to endSession() here
       return next;
     });
   }, [numTrials, endSession, stimulusDurationMs]);
@@ -214,7 +309,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   useEffect(() => {
     startTrialRef.current = startTrial;
   }, [startTrial]);
-  
+
   const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
     if (!isWaitingForResponse) return;
     
@@ -247,7 +342,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       setAudioResponseMadeThisTrial(true);
       currentAudioResponseMade = true;
     }
-    
+
     const performTrialAdvancement = () => {
       // This function contains the logic to clear stimuli and schedule the next trial
       setCurrentPosition(null);
@@ -256,9 +351,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
         const next = prev + 1;
         if (next < numTrials) {
           setTimeout(() => startTrialRef.current?.(), 1000); // Standard inter-trial interval
-        } else {
-          endSession();
         }
+        // No direct call to endSession() here
         return next;
       });
     };
@@ -285,15 +379,22 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       performTrialAdvancement();
     }
   }, [
-    isWaitingForResponse, 
-    trialStartTime, 
-    numTrials, 
-    endSession, 
-    gameMode, 
-    currentTrial, 
-    visualResponseMadeThisTrial, 
+    isWaitingForResponse,
+    trialStartTime,
+    numTrials,
+    endSession,
+    gameMode,
+    currentTrial,
+    visualResponseMadeThisTrial,
     audioResponseMadeThisTrial
   ]);
+
+  // Effect to end session when all trials are completed
+  useEffect(() => {
+    if (gameState === 'playing' && currentTrial === numTrials) {
+      endSession();
+    }
+  }, [gameState, currentTrial, numTrials, endSession]);
 
   // Add keyboard event listener
   useEffect(() => {
@@ -417,19 +518,19 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                 <div>
                   <label className="block text-sm font-medium mb-2">Number of Trials</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setNumTrials(prev => Math.max(10, prev - 5))} 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNumTrials(prev => Math.max(10, prev - 5))}
                       disabled={numTrials <= 10}
                     >
                       -
                     </Button>
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">{numTrials}</Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setNumTrials(prev => Math.min(50, prev + 5))} 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNumTrials(prev => Math.min(50, prev + 5))}
                       disabled={numTrials >= 50}
                     >
                       +
@@ -441,10 +542,10 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                 <div>
                   <label className="block text-sm font-medium mb-2">Stimulus Duration</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))} 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))}
                       disabled={stimulusDurationMs <= 2000}
                     >
                       -
@@ -452,10 +553,10 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
                       {(stimulusDurationMs / 1000).toFixed(1)}s
                     </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))} 
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))}
                       disabled={stimulusDurationMs >= 4000}
                     >
                       +
@@ -567,7 +668,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                     onClick={() => handleResponse('visual')}
                     disabled={!isWaitingForResponse}
                     className={`
-                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
+                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'}
                       hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
                     `}
                   >
@@ -580,7 +681,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                     onClick={() => handleResponse('audio')}
                     disabled={!isWaitingForResponse}
                     className={`
-                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
+                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'}
                       hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
                     `}
                   >
@@ -639,6 +740,39 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                 <div className="text-sm text-gray-600">N-Level Completed</div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Detailed Performance Counts */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {(lastSession?.mode === 'single-visual' || lastSession?.mode === 'dual') && (
+              <Card className="text-center shadow-lg">
+                <CardHeader>
+                  <CardTitle>Detailed Visual Performance</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2 space-y-1 text-sm text-left">
+                  <p>Actual Visual Matches: <span className="font-semibold">{lastSession.actualVisualMatches ?? 'N/A'}</span></p>
+                  <p>Visual Hits (Correctly Pressed): <span className="text-green-600 font-semibold">{lastSession.visualHits ?? 'N/A'}</span></p>
+                  <p>Visual Misses (Not Pressed for Match): <span className="text-red-600 font-semibold">{lastSession.visualMisses ?? 'N/A'}</span></p>
+                  <p>Visual False Alarms (Pressed for Non-Match): <span className="text-orange-600 font-semibold">{lastSession.visualFalseAlarms ?? 'N/A'}</span></p>
+                  <p>Visual Correct Rejections (Not Pressed for Non-Match): <span className="font-semibold">{lastSession.visualCorrectRejections ?? 'N/A'}</span></p>
+                </CardContent>
+              </Card>
+            )}
+
+            {(lastSession?.mode === 'single-audio' || lastSession?.mode === 'dual') && (
+              <Card className="text-center shadow-lg">
+                <CardHeader>
+                  <CardTitle>Detailed Audio Performance</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2 space-y-1 text-sm text-left">
+                  <p>Actual Audio Matches: <span className="font-semibold">{lastSession.actualAudioMatches ?? 'N/A'}</span></p>
+                  <p>Audio Hits (Correctly Pressed): <span className="text-green-600 font-semibold">{lastSession.audioHits ?? 'N/A'}</span></p>
+                  <p>Audio Misses (Not Pressed for Match): <span className="text-red-600 font-semibold">{lastSession.audioMisses ?? 'N/A'}</span></p>
+                  <p>Audio False Alarms (Pressed for Non-Match): <span className="text-orange-600 font-semibold">{lastSession.audioFalseAlarms ?? 'N/A'}</span></p>
+                  <p>Audio Correct Rejections (Not Pressed for Non-Match): <span className="font-semibold">{lastSession.audioCorrectRejections ?? 'N/A'}</span></p>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
