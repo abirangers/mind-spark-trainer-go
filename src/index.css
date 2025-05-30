@@ -103,7 +103,7 @@
     --ring: 180 100% 50%;               /* #00FFFF Cyan (for focus rings) */
 
     /* Custom PRD colors - High Contrast versions */
-    --success: 100 100% 45.1%;          /* #39FF14 Neon Green (adjusted from PRD for better contrast on black) */
+    --success: 100 100% 45.1%;          /* #39FF14 Neon Green */
     --success-foreground: 0 0% 0%;      /* #000000 Black */
     --warning: 60 100% 50%;             /* #FFFF00 Yellow (same as primary) */
     --warning-foreground: 0 0% 0%;      /* #000000 Black */
@@ -118,9 +118,18 @@
     --sidebar-border: 0 0% 33.3%; /* Medium Gray */
     --sidebar-ring: 180 100% 50%; /* Cyan */
   }
-}
 
-@layer base {
+  /* Font Size Options */
+  /* Default is typically 100% or 16px on html, no explicit rule needed for text-size-default */
+
+  html.text-size-large {
+    font-size: 115%; /* Scales root font size, affecting all rem units */
+  }
+
+  html.text-size-xlarge {
+    font-size: 130%; /* Scales root font size, affecting all rem units */
+  }
+
   * {
     @apply border-border;
   }
