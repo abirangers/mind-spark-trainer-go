@@ -7,6 +7,7 @@ import { Brain, Zap, Target, BarChart3, Clock, Users } from "lucide-react";
 import GameInterface from "@/components/GameInterface";
 import Tutorial from "@/components/Tutorial";
 import PerformanceStats from "@/components/PerformanceStats";
+import { HighContrastToggle } from '@/components/ui/HighContrastToggle'; // Added import
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'landing' | 'tutorial' | 'game' | 'stats'>('landing');
@@ -114,6 +115,9 @@ const Index = () => {
               Quick Tutorial
               <Brain className="ml-2 h-5 w-5" />
             </Button>
+          </div>
+          <div className="flex justify-center mt-6">
+            <HighContrastToggle />
           </div>
         </div>
 
