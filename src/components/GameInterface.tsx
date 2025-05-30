@@ -50,6 +50,39 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
+  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
+    if (!isWaitingForResponse) return;
+    
+    const responseTime = Date.now() - trialStartTime;
+    setResponseTimes(prev => [...prev, responseTime]);
+    
+    if (responseType === 'visual') {
+      setUserVisualResponses(prev => [...prev, true]);
+      setUserAudioResponses(prev => [...prev, false]);
+    } else {
+      setUserVisualResponses(prev => [...prev, false]);
+      setUserAudioResponses(prev => [...prev, true]);
+    }
+    
+    setIsWaitingForResponse(false);
+    setCurrentPosition(null);
+    setCurrentLetter('');
+    
+    if (trialTimeoutRef.current) {
+      clearTimeout(trialTimeoutRef.current);
+    }
+    
+    setCurrentTrial(prev => {
+      const next = prev + 1;
+      if (next < totalTrials) {
+        setTimeout(startTrial, 1000);
+      } else {
+        endSession();
+      }
+      return next;
+    });
+  }, [isWaitingForResponse, trialStartTime, totalTrials]);
+
   // Add keyboard event listener
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -152,39 +185,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       return next;
     });
   }, [totalTrials]);
-
-  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
-    if (!isWaitingForResponse) return;
-    
-    const responseTime = Date.now() - trialStartTime;
-    setResponseTimes(prev => [...prev, responseTime]);
-    
-    if (responseType === 'visual') {
-      setUserVisualResponses(prev => [...prev, true]);
-      setUserAudioResponses(prev => [...prev, false]);
-    } else {
-      setUserVisualResponses(prev => [...prev, false]);
-      setUserAudioResponses(prev => [...prev, true]);
-    }
-    
-    setIsWaitingForResponse(false);
-    setCurrentPosition(null);
-    setCurrentLetter('');
-    
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current);
-    }
-    
-    setCurrentTrial(prev => {
-      const next = prev + 1;
-      if (next < totalTrials) {
-        setTimeout(startTrial, 1000);
-      } else {
-        endSession();
-      }
-      return next;
-    });
-  }, [isWaitingForResponse, trialStartTime, totalTrials]);
 
   const endSession = useCallback(() => {
     setGameState('results');
