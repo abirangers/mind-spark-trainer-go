@@ -64,6 +64,24 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     };
   }, [audioEnabled]);
 
+  const generateStimulus = useCallback(() => {
+    const newPosition = Math.floor(Math.random() * 9);
+    const newLetter = letters[Math.floor(Math.random() * letters.length)];
+    
+    setVisualSequence(prev => [...prev, newPosition]);
+    setAudioSequence(prev => [...prev, newLetter]);
+    
+    const visualMatch = visualSequence.length >= nLevel && 
+                       visualSequence[visualSequence.length - nLevel] === newPosition;
+    const audioMatch = audioSequence.length >= nLevel && 
+                      audioSequence[audioSequence.length - nLevel] === newLetter;
+    
+    setVisualMatches(prev => [...prev, visualMatch]);
+    setAudioMatches(prev => [...prev, audioMatch]);
+    
+    return { newPosition, newLetter, visualMatch, audioMatch };
+  }, [visualSequence, audioSequence, nLevel]);
+
   const playAudioLetter = useCallback((letter: string) => {
     if (!audioEnabled || !synthRef.current) return;
     
@@ -79,39 +97,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     
     synthRef.current.speak(utterance);
   }, [audioEnabled]);
-
-  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
-    if (!isWaitingForResponse) return;
-    
-    const responseTime = Date.now() - trialStartTime;
-    setResponseTimes(prev => [...prev, responseTime]);
-    
-    if (responseType === 'visual') {
-      setUserVisualResponses(prev => [...prev, true]);
-      setUserAudioResponses(prev => [...prev, false]);
-    } else {
-      setUserVisualResponses(prev => [...prev, false]);
-      setUserAudioResponses(prev => [...prev, true]);
-    }
-    
-    setIsWaitingForResponse(false);
-    setCurrentPosition(null);
-    setCurrentLetter('');
-    
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current);
-    }
-    
-    setCurrentTrial(prev => {
-      const next = prev + 1;
-      if (next < totalTrials) {
-        setTimeout(startTrial, 1000);
-      } else {
-        endSession();
-      }
-      return next;
-    });
-  }, [isWaitingForResponse, trialStartTime, totalTrials, startTrial, endSession]);
 
   const endSession = useCallback(() => {
     setGameState('results');
@@ -154,24 +139,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
   }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, totalTrials, nLevel, gameMode]);
 
-  const generateStimulus = useCallback(() => {
-    const newPosition = Math.floor(Math.random() * 9);
-    const newLetter = letters[Math.floor(Math.random() * letters.length)];
-    
-    setVisualSequence(prev => [...prev, newPosition]);
-    setAudioSequence(prev => [...prev, newLetter]);
-    
-    const visualMatch = visualSequence.length >= nLevel && 
-                       visualSequence[visualSequence.length - nLevel] === newPosition;
-    const audioMatch = audioSequence.length >= nLevel && 
-                      audioSequence[audioSequence.length - nLevel] === newLetter;
-    
-    setVisualMatches(prev => [...prev, visualMatch]);
-    setAudioMatches(prev => [...prev, audioMatch]);
-    
-    return { newPosition, newLetter, visualMatch, audioMatch };
-  }, [visualSequence, audioSequence, nLevel]);
-
   const startTrial = useCallback(() => {
     const { newPosition, newLetter } = generateStimulus();
     
@@ -188,7 +155,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       handleTrialTimeout();
     }, 3000);
     
-  }, [generateStimulus, gameMode, audioEnabled, playAudioLetter]);
+  }, [generateStimulus, gameMode, audioEnabled, playAudioLetter, handleTrialTimeout]);
 
   const handleTrialTimeout = useCallback(() => {
     setIsWaitingForResponse(false);
@@ -209,6 +176,39 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       return next;
     });
   }, [totalTrials, startTrial, endSession]);
+  
+  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
+    if (!isWaitingForResponse) return;
+    
+    const responseTime = Date.now() - trialStartTime;
+    setResponseTimes(prev => [...prev, responseTime]);
+    
+    if (responseType === 'visual') {
+      setUserVisualResponses(prev => [...prev, true]);
+      setUserAudioResponses(prev => [...prev, false]);
+    } else {
+      setUserVisualResponses(prev => [...prev, false]);
+      setUserAudioResponses(prev => [...prev, true]);
+    }
+    
+    setIsWaitingForResponse(false);
+    setCurrentPosition(null);
+    setCurrentLetter('');
+    
+    if (trialTimeoutRef.current) {
+      clearTimeout(trialTimeoutRef.current);
+    }
+    
+    setCurrentTrial(prev => {
+      const next = prev + 1;
+      if (next < totalTrials) {
+        setTimeout(startTrial, 1000);
+      } else {
+        endSession();
+      }
+      return next;
+    });
+  }, [isWaitingForResponse, trialStartTime, totalTrials, startTrial, endSession]);
 
   // Add keyboard event listener
   useEffect(() => {
