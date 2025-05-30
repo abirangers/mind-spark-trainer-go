@@ -8,10 +8,10 @@ import GameInterface from "@/components/GameInterface";
 import Tutorial from "@/components/Tutorial";
 import PerformanceStats from "@/components/PerformanceStats";
 import { HighContrastToggle } from '@/components/ui/HighContrastToggle';
-import { FontSizeSelector } from '@/components/ui/FontSizeSelector'; // Added import
+import { FontSizeSelector } from '@/components/ui/FontSizeSelector';
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'landing' | 'tutorial' | 'game' | 'stats'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'tutorial' | 'practice' | 'game' | 'stats'>('landing');
   const [showQuickStart, setShowQuickStart] = useState(false);
 
   const features = [
@@ -57,11 +57,23 @@ const Index = () => {
   if (currentView === 'tutorial') {
     return <Tutorial
       onComplete={() => {
-        localStorage.setItem('tutorialCompleted', 'true');
-        setCurrentView('game');
+        // Tutorial now leads to practice mode first
+        localStorage.setItem('tutorialCompleted', 'true'); // Still mark tutorial as done
+        setCurrentView('practice');
       }}
       onBack={() => setCurrentView('landing')}
     />;
+  }
+
+  if (currentView === 'practice') {
+    return (
+      <GameInterface
+        isPracticeMode={true}
+        onPracticeComplete={() => setCurrentView('game')} // After practice, go to actual game setup
+        onBack={() => setCurrentView('tutorial')}       // If user backs out of practice, go back to tutorial
+        onViewStats={() => setCurrentView('stats')}     // Prop needed by GameInterface
+      />
+    );
   }
 
   if (currentView === 'game') {
