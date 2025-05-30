@@ -51,6 +51,7 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const trialTimeoutRef = useRef<NodeJS.Timeout>();
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const startTrialRef = useRef<() => void>();
+  const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
@@ -218,17 +219,14 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       currentAudioResponseMade = true;
     }
     
-    const advanceTrial = () => {
-      setIsWaitingForResponse(false);
+    const performTrialAdvancement = () => {
+      // This function contains the logic to clear stimuli and schedule the next trial
       setCurrentPosition(null);
       setCurrentLetter('');
-      if (trialTimeoutRef.current) {
-        clearTimeout(trialTimeoutRef.current);
-      }
       setCurrentTrial(prev => {
         const next = prev + 1;
         if (next < numTrials) {
-          setTimeout(() => startTrialRef.current?.(), 1000); 
+          setTimeout(() => startTrialRef.current?.(), 1000); // Standard inter-trial interval
         } else {
           endSession();
         }
@@ -238,11 +236,24 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
 
     if (gameMode === 'dual') {
       if (currentVisualResponseMade && currentAudioResponseMade) {
-        advanceTrial();
+        setIsWaitingForResponse(false); // Stop waiting for inputs for this trial
+        if (trialTimeoutRef.current) {
+          clearTimeout(trialTimeoutRef.current); // Clear the main stimulus timeout
+        }
+        // Introduce a 750ms delay before clearing stimuli and advancing
+        postDualResponseDelayRef.current = setTimeout(() => {
+          performTrialAdvancement();
+        }, 750);
       }
-      // else, wait for the other response or timeout
-    } else { // single-visual or single-audio
-      advanceTrial();
+      // else, if only one response made in dual mode, do nothing yet.
+      // Still waiting for the other response or for the main trialTimeout.
+    } else { // single-visual or single-audio mode
+      setIsWaitingForResponse(false);
+      if (trialTimeoutRef.current) {
+        clearTimeout(trialTimeoutRef.current);
+      }
+      // For single modes, advance immediately (clear stimuli and then start inter-trial interval)
+      performTrialAdvancement();
     }
   }, [
     isWaitingForResponse, 
@@ -288,6 +299,9 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     setGameState('setup');
     if (trialTimeoutRef.current) {
       clearTimeout(trialTimeoutRef.current);
+    }
+    if (postDualResponseDelayRef.current) {
+      clearTimeout(postDualResponseDelayRef.current);
     }
     if (synthRef.current && audioEnabled) { // Check audioEnabled
       synthRef.current.cancel();
