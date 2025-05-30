@@ -288,273 +288,284 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     if (trialTimeoutRef.current) {
       clearTimeout(trialTimeoutRef.current);
     }
+    if (synthRef.current && audioEnabled) { // Check audioEnabled
+      synthRef.current.cancel();
+    }
+    setCurrentPosition(null);
+    setCurrentLetter('');
+    setIsWaitingForResponse(false);
   };
 
-  // if (gameState === 'setup') {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
-  //       <div className="container mx-auto max-w-4xl">
-  //         <div className="flex items-center gap-4 mb-8">
-  //           <Button variant="outline" onClick={onBack} className="gap-2">
-  //             <ArrowLeft className="h-4 w-4" />
-  //             Back
-  //           </Button>
-  //           <h1 className="text-3xl font-bold text-gray-900">N-Back Training Setup</h1>
-  //         </div>
+  if (gameState === 'setup') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex items-center gap-4 mb-8">
+            <Button variant="outline" onClick={onBack} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900">N-Back Training Setup</h1>
+          </div>
 
-  //         <div className="grid md:grid-cols-2 gap-8">
-  //           {/* Game Mode Selection */}
-  //           <Card className="shadow-lg">
-  //             <CardHeader>
-  //               <CardTitle>Select Training Mode</CardTitle>
-  //             </CardHeader>
-  //             <CardContent className="space-y-4">
-  //               <div className="space-y-3">
-  //                 {[
-  //                   { mode: 'single-visual' as const, title: 'Single N-Back (Visual)', desc: 'Remember visual positions only' },
-  //                   { mode: 'single-audio' as const, title: 'Single N-Back (Audio)', desc: 'Remember audio letters only' },
-  //                   { mode: 'dual' as const, title: 'Dual N-Back', desc: 'Remember both visual and audio stimuli' }
-  //                 ].map(({ mode, title, desc }) => (
-  //                   <div 
-  //                     key={mode}
-  //                     className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-  //                       gameMode === mode ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-  //                     }`}
-  //                     onClick={() => setGameMode(mode)}
-  //                   >
-  //                     <div className="font-semibold">{title}</div>
-  //                     <div className="text-sm text-gray-600">{desc}</div>
-  //                   </div>
-  //                 ))}
-  //               </div>
-  //             </CardContent>
-  //           </Card>
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Game Mode Selection */}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Select Training Mode</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {[
+                    { mode: 'single-visual' as const, title: 'Single N-Back (Visual)', desc: 'Remember visual positions only' },
+                    { mode: 'single-audio' as const, title: 'Single N-Back (Audio)', desc: 'Remember audio letters only' },
+                    { mode: 'dual' as const, title: 'Dual N-Back', desc: 'Remember both visual and audio stimuli' }
+                  ].map(({ mode, title, desc }) => (
+                    <div 
+                      key={mode}
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        gameMode === mode ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setGameMode(mode)}
+                    >
+                      <div className="font-semibold">{title}</div>
+                      <div className="text-sm text-gray-600">{desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-  //           {/* Settings */}
-  //           <Card className="shadow-lg">
-  //             <CardHeader>
-  //               <CardTitle>Training Settings</CardTitle>
-  //             </CardHeader>
-  //             <CardContent className="space-y-6">
-  //               <div>
-  //                 <label className="block text-sm font-medium mb-2">N-Level (Difficulty)</label>
-  //                 <div className="flex items-center gap-4">
-  //                   <Button 
-  //                     variant="outline" 
-  //                     size="sm"
-  //                     onClick={() => setNLevel(Math.max(1, nLevel - 1))}
-  //                     disabled={nLevel <= 1}
-  //                   >
-  //                     -
-  //                   </Button>
-  //                   <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
-  //                     {nLevel}-Back
-  //                   </Badge>
-  //                   <Button 
-  //                     variant="outline" 
-  //                     size="sm"
-  //                     onClick={() => setNLevel(Math.min(8, nLevel + 1))}
-  //                     disabled={nLevel >= 8}
-  //                   >
-  //                     +
-  //                   </Button>
-  //                 </div>
-  //                 <p className="text-sm text-gray-600 mt-2">
-  //                   Higher N-levels are more challenging
-  //                 </p>
-  //               </div>
+            {/* Settings */}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Training Settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">N-Level (Difficulty)</label>
+                  <div className="flex items-center gap-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setNLevel(Math.max(1, nLevel - 1))}
+                      disabled={nLevel <= 1}
+                    >
+                      -
+                    </Button>
+                    <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
+                      {nLevel}-Back
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setNLevel(Math.min(8, nLevel + 1))}
+                      disabled={nLevel >= 8}
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Higher N-levels are more challenging
+                  </p>
+                </div>
 
-  //               <div>
-  //                 <label className="block text-sm font-medium mb-2">Audio Settings</label>
-  //                 <Button 
-  //                   variant="outline" 
-  //                   onClick={() => setAudioEnabled(!audioEnabled)}
-  //                   className="gap-2"
-  //                 >
-  //                   {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-  //                   {audioEnabled ? 'Audio On' : 'Audio Off'}
-  //                 </Button>
-  //               </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Audio Settings</label>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setAudioEnabled(!audioEnabled)}
+                    className="gap-2"
+                  >
+                    {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                    {audioEnabled ? 'Audio On' : 'Audio Off'}
+                  </Button>
+                </div>
 
-  //               <div className="pt-4 border-t">
-  //                 <div className="text-sm text-gray-600 space-y-1">
-  //                   <div>• Trials: {totalTrials}</div>
-  //                   <div>• Duration: ~{Math.ceil(totalTrials * 4 / 60)} minutes</div>
-  //                   <div>• Mode: {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
-  //                 </div>
-  //               </div>
-  //             </CardContent>
-  //           </Card>
-  //         </div>
+                <div className="pt-4 border-t">
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>• Trials: {totalTrials}</div>
+                    <div>• Duration: ~{Math.ceil(totalTrials * 4 / 60)} minutes</div>
+                    <div>• Mode: {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-  //         <div className="flex justify-center mt-8">
-  //           <Button 
-  //             size="lg" 
-  //             onClick={startGame}
-  //             className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg gap-2"
-  //           >
-  //             <Play className="h-5 w-5" />
-  //             Start Training Session
-  //           </Button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+          <div className="flex justify-center mt-8">
+            <Button 
+              size="lg" 
+              onClick={startGame}
+              className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg gap-2"
+            >
+              <Play className="h-5 w-5" />
+              Start Training Session
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // if (gameState === 'playing') {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
-  //       <div className="container mx-auto max-w-4xl">
-  //         {/* Header */}
-  //         <div className="flex items-center justify-between mb-8">
-  //           <div className="flex items-center gap-4">
-  //             <Button variant="outline" onClick={resetGame} className="gap-2">
-  //               <Pause className="h-4 w-4" />
-  //               Pause
-  //             </Button>
-  //             <Badge variant="secondary" className="px-3 py-1">
-  //               {nLevel}-Back {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-  //             </Badge>
-  //           </div>
-  //           <div className="text-right">
-  //             <div className="text-sm text-gray-600">Trial</div>
-  //             <div className="text-2xl font-bold">{currentTrial + 1} / {totalTrials}</div>
-  //           </div>
-  //         </div>
+  if (gameState === 'playing') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+        <div className="container mx-auto max-w-4xl">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={resetGame} className="gap-2">
+                <Pause className="h-4 w-4" />
+                Pause
+              </Button>
+              <Badge variant="secondary" className="px-3 py-1">
+                {nLevel}-Back {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </Badge>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-600">Trial</div>
+              <div className="text-2xl font-bold">{currentTrial + 1} / {totalTrials}</div>
+            </div>
+          </div>
 
-  //         {/* Progress */}
-  //         <div className="mb-8">
-  //           <Progress value={(currentTrial / totalTrials) * 100} className="h-2" />
-  //         </div>
+          {/* Progress */}
+          <div className="mb-8">
+            <Progress value={(currentTrial / totalTrials) * 100} className="h-2" />
+          </div>
 
-  //         {/* Game Area - keeping original white background */}
-  //         <div className="bg-white rounded-lg p-8 mb-8 shadow-lg">
-  //           <div className="space-y-8">
-  //             {/* Visual Grid - keeping original blue design */}
-  //             {(gameMode === 'single-visual' || gameMode === 'dual') && (
-  //               <div className="text-center">
-  //                 <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
-  //                   {[...Array(9)].map((_, index) => (
-  //                     <div
-  //                       key={index}
-  //                       className={`w-20 h-20 border-2 rounded-lg transition-all duration-200 ${
-  //                         currentPosition === index
-  //                           ? 'bg-blue-500 border-blue-400 shadow-lg'
-  //                           : 'bg-gray-100 border-gray-300'
-  //                       }`}
-  //                     />
-  //                   ))}
-  //                 </div>
-  //               </div>
-  //             )}
+          {/* Game Area - keeping original white background */}
+          <div className="bg-white rounded-lg p-8 mb-8 shadow-lg">
+            <div className="space-y-8">
+              {/* Visual Grid - keeping original blue design */}
+              {(gameMode === 'single-visual' || gameMode === 'dual') && (
+                <div className="text-center">
+                  <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                    {[...Array(9)].map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-20 h-20 border-2 rounded-lg transition-all duration-200 ${
+                          currentPosition === index
+                            ? 'bg-blue-500 border-blue-400 shadow-lg'
+                            : 'bg-gray-100 border-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
-  //             {/* Audio Display */}
-  //             {(gameMode === 'single-audio' || gameMode === 'dual') && (
-  //               <div className="text-center">
-  //                 <div className={`text-6xl font-bold transition-all duration-200 ${
-  //                   currentLetter ? 'text-blue-600' : 'text-gray-400'
-  //                 }`}>
-  //                   {currentLetter || '?'}
-  //                 </div>
-  //               </div>
-  //             )}
+              {/* Audio Display */}
+              {(gameMode === 'single-audio' || gameMode === 'dual') && (
+                <div className="text-center">
+                  <div className={`text-6xl font-bold transition-all duration-200 ${
+                    currentLetter ? 'text-blue-600' : 'text-gray-400'
+                  }`}>
+                    {currentLetter || '?'}
+                  </div>
+                </div>
+              )}
 
-  //             {/* Response Buttons - new design matching the reference image */}
-  //             <div className="flex gap-4 justify-center pt-8">
-  //               {(gameMode === 'single-visual' || gameMode === 'dual') && (
-  //                 <button 
-  //                   onClick={() => handleResponse('visual')}
-  //                   disabled={!isWaitingForResponse}
-  //                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]"
-  //                 >
-  //                   <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">A</span>
-  //                   Position Match
-  //                 </button>
-  //               )}
-  //               {(gameMode === 'single-audio' || gameMode === 'dual') && (
-  //                 <button 
-  //                   onClick={() => handleResponse('audio')}
-  //                   disabled={!isWaitingForResponse}
-  //                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]"
-  //                 >
-  //                   <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">L</span>
-  //                   Sound Match
-  //                 </button>
-  //               )}
-  //             </div>
+              {/* Response Buttons - new design matching the reference image */}
+              <div className="flex gap-4 justify-center pt-8">
+                {(gameMode === 'single-visual' || gameMode === 'dual') && (
+                  <button 
+                    onClick={() => handleResponse('visual')}
+                    disabled={!isWaitingForResponse}
+                    className={`
+                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
+                      hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
+                    `}
+                  >
+                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">A</span>
+                    Position Match
+                  </button>
+                )}
+                {(gameMode === 'single-audio' || gameMode === 'dual') && (
+                  <button 
+                    onClick={() => handleResponse('audio')}
+                    disabled={!isWaitingForResponse}
+                    className={`
+                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
+                      hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
+                    `}
+                  >
+                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">L</span>
+                    Sound Match
+                  </button>
+                )}
+              </div>
 
-  //             {isWaitingForResponse && (
-  //               <div className="text-center space-y-2">
-  //                 <p className="text-gray-600 text-sm">Press when current stimulus matches {nLevel} steps back</p>
-  //                 <p className="text-gray-500 text-xs">
-  //                   Keyboard shortcuts: 
-  //                   {(gameMode === 'single-visual' || gameMode === 'dual') && ' A for Position Match'}
-  //                   {gameMode === 'dual' && ' • '}
-  //                   {(gameMode === 'single-audio' || gameMode === 'dual') && ' L for Sound Match'}
-  //                 </p>
-  //               </div>
-  //             )}
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+              {isWaitingForResponse && (
+                <div className="text-center space-y-2">
+                  <p className="text-gray-600 text-sm">Press when current stimulus matches {nLevel} steps back</p>
+                  <p className="text-gray-500 text-xs">
+                    Keyboard shortcuts: 
+                    {(gameMode === 'single-visual' || gameMode === 'dual') && ' A for Position Match'}
+                    {gameMode === 'dual' && ' • '}
+                    {(gameMode === 'single-audio' || gameMode === 'dual') && ' L for Sound Match'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // if (gameState === 'results') {
-  //   const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
-  //   const lastSession = sessions[sessions.length - 1];
+  if (gameState === 'results') {
+    const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
+    const lastSession = sessions[sessions.length - 1];
 
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
-  //       <div className="container mx-auto max-w-4xl">
-  //         <div className="text-center mb-8">
-  //           <h1 className="text-4xl font-bold text-gray-900 mb-4">Session Complete!</h1>
-  //           <p className="text-xl text-gray-600">Great work on your training session</p>
-  //         </div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Session Complete!</h1>
+            <p className="text-xl text-gray-600">Great work on your training session</p>
+          </div>
 
-  //         <div className="grid md:grid-cols-3 gap-6 mb-8">
-  //           <Card className="text-center shadow-lg">
-  //             <CardContent className="pt-6">
-  //               <div className="text-3xl font-bold text-blue-600">{lastSession?.accuracy.toFixed(1)}%</div>
-  //               <div className="text-sm text-gray-600">Overall Accuracy</div>
-  //             </CardContent>
-  //           </Card>
-  //           <Card className="text-center shadow-lg">
-  //             <CardContent className="pt-6">
-  //               <div className="text-3xl font-bold text-green-600">{lastSession?.averageResponseTime.toFixed(0)}ms</div>
-  //               <div className="text-sm text-gray-600">Avg Response Time</div>
-  //             </CardContent>
-  //           </Card>
-  //           <Card className="text-center shadow-lg">
-  //             <CardContent className="pt-6">
-  //               <div className="text-3xl font-bold text-purple-600">{lastSession?.nLevel}</div>
-  //               <div className="text-sm text-gray-600">N-Level Completed</div>
-  //             </CardContent>
-  //           </Card>
-  //         </div>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <Card className="text-center shadow-lg">
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold text-blue-600">{lastSession?.accuracy.toFixed(1)}%</div>
+                <div className="text-sm text-gray-600">Overall Accuracy</div>
+              </CardContent>
+            </Card>
+            <Card className="text-center shadow-lg">
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold text-green-600">{lastSession?.averageResponseTime.toFixed(0)}ms</div>
+                <div className="text-sm text-gray-600">Avg Response Time</div>
+              </CardContent>
+            </Card>
+            <Card className="text-center shadow-lg">
+              <CardContent className="pt-6">
+                <div className="text-3xl font-bold text-purple-600">{lastSession?.nLevel}</div>
+                <div className="text-sm text-gray-600">N-Level Completed</div>
+              </CardContent>
+            </Card>
+          </div>
 
-  //         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-  //           <Button size="lg" onClick={resetGame} className="gap-2">
-  //             <Play className="h-4 w-4" />
-  //             Train Again
-  //           </Button>
-  //           <Button size="lg" variant="outline" onClick={onViewStats} className="gap-2">
-  //             <BarChart3 className="h-4 w-4" />
-  //             View All Stats
-  //           </Button>
-  //           <Button size="lg" variant="outline" onClick={onBack}>
-  //             Back to Home
-  //           </Button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={resetGame} className="gap-2">
+              <Play className="h-4 w-4" />
+              Train Again
+            </Button>
+            <Button size="lg" variant="outline" onClick={onViewStats} className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              View All Stats
+            </Button>
+            <Button size="lg" variant="outline" onClick={onBack}>
+              Back to Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // return null;
-  return (<div>Test - Game Interface Loaded</div>);
+  return null;
 };
 
 export default GameInterface;
