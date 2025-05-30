@@ -46,36 +46,72 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   const [responseTimes, setResponseTimes] = useState<number[]>([]);
   
   const trialTimeoutRef = useRef<NodeJS.Timeout>();
-  const audioContextRef = useRef<AudioContext>();
+  const synthRef = useRef<SpeechSynthesis | null>(null);
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-  const playAudioLetter = useCallback(async (letter: string) => {
-    if (!audioEnabled || !audioContextRef.current) return;
+  // Initialize Speech Synthesis
+  useEffect(() => {
+    if (audioEnabled) {
+      synthRef.current = window.speechSynthesis;
+      console.log('Speech synthesis initialized:', synthRef.current);
+    }
+    
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, [audioEnabled]);
+
+  const playAudioLetter = useCallback((letter: string) => {
+    if (!audioEnabled || !synthRef.current) return;
     
     console.log('Playing audio for letter:', letter);
     
-    // Resume audio context if suspended (browser autoplay policy)
-    if (audioContextRef.current.state === 'suspended') {
-      await audioContextRef.current.resume();
+    // Cancel any ongoing speech
+    synthRef.current.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(letter);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    synthRef.current.speak(utterance);
+  }, [audioEnabled]);
+
+  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
+    if (!isWaitingForResponse) return;
+    
+    const responseTime = Date.now() - trialStartTime;
+    setResponseTimes(prev => [...prev, responseTime]);
+    
+    if (responseType === 'visual') {
+      setUserVisualResponses(prev => [...prev, true]);
+      setUserAudioResponses(prev => [...prev, false]);
+    } else {
+      setUserVisualResponses(prev => [...prev, false]);
+      setUserAudioResponses(prev => [...prev, true]);
     }
     
-    const frequency = 200 + (letter.charCodeAt(0) - 65) * 50;
-    const oscillator = audioContextRef.current.createOscillator();
-    const gainNode = audioContextRef.current.createGain();
+    setIsWaitingForResponse(false);
+    setCurrentPosition(null);
+    setCurrentLetter('');
     
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContextRef.current.destination);
+    if (trialTimeoutRef.current) {
+      clearTimeout(trialTimeoutRef.current);
+    }
     
-    oscillator.frequency.setValueAtTime(frequency, audioContextRef.current.currentTime);
-    oscillator.type = 'sine';
-    
-    gainNode.gain.setValueAtTime(0.3, audioContextRef.current.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + 0.5);
-    
-    oscillator.start(audioContextRef.current.currentTime);
-    oscillator.stop(audioContextRef.current.currentTime + 0.5);
-  }, [audioEnabled]);
+    setCurrentTrial(prev => {
+      const next = prev + 1;
+      if (next < totalTrials) {
+        setTimeout(startTrial, 1000);
+      } else {
+        endSession();
+      }
+      return next;
+    });
+  }, [isWaitingForResponse, trialStartTime, totalTrials, startTrial, endSession]);
 
   const endSession = useCallback(() => {
     setGameState('results');
@@ -174,39 +210,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     });
   }, [totalTrials, startTrial, endSession]);
 
-  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
-    if (!isWaitingForResponse) return;
-    
-    const responseTime = Date.now() - trialStartTime;
-    setResponseTimes(prev => [...prev, responseTime]);
-    
-    if (responseType === 'visual') {
-      setUserVisualResponses(prev => [...prev, true]);
-      setUserAudioResponses(prev => [...prev, false]);
-    } else {
-      setUserVisualResponses(prev => [...prev, false]);
-      setUserAudioResponses(prev => [...prev, true]);
-    }
-    
-    setIsWaitingForResponse(false);
-    setCurrentPosition(null);
-    setCurrentLetter('');
-    
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current);
-    }
-    
-    setCurrentTrial(prev => {
-      const next = prev + 1;
-      if (next < totalTrials) {
-        setTimeout(startTrial, 1000);
-      } else {
-        endSession();
-      }
-      return next;
-    });
-  }, [isWaitingForResponse, trialStartTime, totalTrials, startTrial, endSession]);
-
   // Add keyboard event listener
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -222,18 +225,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, isWaitingForResponse, gameMode, handleResponse]);
-
-  useEffect(() => {
-    if (audioEnabled) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      console.log('Audio context created:', audioContextRef.current);
-    }
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, [audioEnabled]);
 
   const startGame = () => {
     setGameState('playing');
