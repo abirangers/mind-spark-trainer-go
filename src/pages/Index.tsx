@@ -53,7 +53,13 @@ const Index = () => {
   ];
 
   if (currentView === 'tutorial') {
-    return <Tutorial onComplete={() => setCurrentView('game')} onBack={() => setCurrentView('landing')} />;
+    return <Tutorial 
+      onComplete={() => {
+        localStorage.setItem('tutorialCompleted', 'true');
+        setCurrentView('game');
+      }} 
+      onBack={() => setCurrentView('landing')} 
+    />;
   }
 
   if (currentView === 'game') {
@@ -86,7 +92,14 @@ const Index = () => {
             <Button 
               size="lg" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              onClick={() => setCurrentView('game')}
+              onClick={() => {
+                const tutorialCompleted = localStorage.getItem('tutorialCompleted');
+                if (tutorialCompleted === 'true') {
+                  setCurrentView('game'); // Go directly to game if tutorial was completed
+                } else {
+                  setCurrentView('tutorial'); // Go to tutorial if not completed or flag doesn't exist
+                }
+              }}
             >
               Start Training Now
               <Zap className="ml-2 h-5 w-5" />
