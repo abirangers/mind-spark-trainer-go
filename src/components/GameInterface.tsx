@@ -50,6 +50,22 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
+  // Add keyboard event listener
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (gameState === 'playing' && isWaitingForResponse) {
+        if (event.key.toLowerCase() === 'a' && (gameMode === 'single-visual' || gameMode === 'dual')) {
+          handleResponse('visual');
+        } else if (event.key.toLowerCase() === 'l' && (gameMode === 'single-audio' || gameMode === 'dual')) {
+          handleResponse('audio');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameState, isWaitingForResponse, gameMode, handleResponse]);
+
   useEffect(() => {
     if (audioEnabled) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -231,7 +247,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     }
   };
 
-  // Game setup view
   if (gameState === 'setup') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
@@ -344,37 +359,36 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     );
   }
 
-  // Game playing view with new dark design
   if (gameState === 'playing') {
     return (
-      <div className="min-h-screen bg-slate-900 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
         <div className="container mx-auto max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={resetGame} className="gap-2 border-slate-600 text-slate-300 hover:bg-slate-800">
+              <Button variant="outline" onClick={resetGame} className="gap-2">
                 <Pause className="h-4 w-4" />
                 Pause
               </Button>
-              <Badge variant="secondary" className="px-3 py-1 bg-slate-800 text-slate-300">
+              <Badge variant="secondary" className="px-3 py-1">
                 {nLevel}-Back {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </Badge>
             </div>
-            <div className="text-right text-slate-300">
-              <div className="text-sm text-slate-400">Trial</div>
+            <div className="text-right">
+              <div className="text-sm text-gray-600">Trial</div>
               <div className="text-2xl font-bold">{currentTrial + 1} / {totalTrials}</div>
             </div>
           </div>
 
           {/* Progress */}
           <div className="mb-8">
-            <Progress value={(currentTrial / totalTrials) * 100} className="h-2 bg-slate-800" />
+            <Progress value={(currentTrial / totalTrials) * 100} className="h-2" />
           </div>
 
-          {/* Game Area with dark theme */}
-          <div className="bg-slate-800 rounded-lg p-8 mb-8 border border-slate-700">
+          {/* Game Area - keeping original white background */}
+          <div className="bg-white rounded-lg p-8 mb-8 shadow-lg">
             <div className="space-y-8">
-              {/* Visual Grid */}
+              {/* Visual Grid - keeping original blue design */}
               {(gameMode === 'single-visual' || gameMode === 'dual') && (
                 <div className="text-center">
                   <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
@@ -383,8 +397,8 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                         key={index}
                         className={`w-20 h-20 border-2 rounded-lg transition-all duration-200 ${
                           currentPosition === index
-                            ? 'bg-blue-500 border-blue-400 shadow-lg shadow-blue-500/50'
-                            : 'bg-slate-700 border-slate-600'
+                            ? 'bg-blue-500 border-blue-400 shadow-lg'
+                            : 'bg-gray-100 border-gray-300'
                         }`}
                       />
                     ))}
@@ -396,45 +410,47 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
               {(gameMode === 'single-audio' || gameMode === 'dual') && (
                 <div className="text-center">
                   <div className={`text-6xl font-bold transition-all duration-200 ${
-                    currentLetter ? 'text-blue-400' : 'text-slate-600'
+                    currentLetter ? 'text-blue-600' : 'text-gray-400'
                   }`}>
                     {currentLetter || '?'}
                   </div>
                 </div>
               )}
 
-              {/* Response Buttons with new design matching the reference */}
-              <div className="flex gap-6 justify-center pt-8">
+              {/* Response Buttons - new design matching the reference image */}
+              <div className="flex gap-4 justify-center pt-8">
                 {(gameMode === 'single-visual' || gameMode === 'dual') && (
-                  <Button 
-                    size="lg"
+                  <button 
                     onClick={() => handleResponse('visual')}
                     disabled={!isWaitingForResponse}
-                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 px-8 py-4 text-lg font-medium"
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded border border-slate-500 flex items-center justify-center text-sm">👁</span>
-                      Position Match (A)
-                    </span>
-                  </Button>
+                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">A</span>
+                    Position Match
+                  </button>
                 )}
                 {(gameMode === 'single-audio' || gameMode === 'dual') && (
-                  <Button 
-                    size="lg"
+                  <button 
                     onClick={() => handleResponse('audio')}
                     disabled={!isWaitingForResponse}
-                    className="bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 px-8 py-4 text-lg font-medium"
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded border border-slate-500 flex items-center justify-center text-sm">🔊</span>
-                      Sound Match (L)
-                    </span>
-                  </Button>
+                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">L</span>
+                    Sound Match
+                  </button>
                 )}
               </div>
 
               {isWaitingForResponse && (
-                <p className="text-center text-slate-400 text-sm">Press when current stimulus matches {nLevel} steps back</p>
+                <div className="text-center space-y-2">
+                  <p className="text-gray-600 text-sm">Press when current stimulus matches {nLevel} steps back</p>
+                  <p className="text-gray-500 text-xs">
+                    Keyboard shortcuts: 
+                    {(gameMode === 'single-visual' || gameMode === 'dual') && ' A for Position Match'}
+                    {gameMode === 'dual' && ' • '}
+                    {(gameMode === 'single-audio' || gameMode === 'dual') && ' L for Sound Match'}
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -443,7 +459,6 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     );
   }
 
-  // Results view
   if (gameState === 'results') {
     const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
     const lastSession = sessions[sessions.length - 1];
