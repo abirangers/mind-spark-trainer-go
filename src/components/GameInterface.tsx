@@ -142,7 +142,36 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     localStorage.setItem('nback-sessions', JSON.stringify(sessions));
     
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
-  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, numTrials, nLevel, gameMode]);
+
+    // Adaptive Difficulty Logic
+    const currentNLevel = nLevel; 
+    let nextNLevel = currentNLevel;
+    let adaptiveMessage = "";
+
+    if (overallAccuracy >= 80 && currentNLevel < 8) {
+      nextNLevel = currentNLevel + 1;
+      adaptiveMessage = `Congratulations! N-Level increased to ${nextNLevel}!`;
+    } else if (overallAccuracy < 60 && currentNLevel > 1) {
+      nextNLevel = currentNLevel - 1;
+      adaptiveMessage = `N-Level decreased to ${nextNLevel}. Keep practicing!`;
+    } else if (overallAccuracy >= 80 && currentNLevel === 8) {
+      adaptiveMessage = `You're at the max N-Level (${currentNLevel}) and performing excellently!`;
+    } else if (overallAccuracy < 60 && currentNLevel === 1) {
+      adaptiveMessage = `N-Level remains at ${currentNLevel}. Keep it up!`;
+    } else { // Maintained level (60-79%) or no change possible
+      adaptiveMessage = `N-Level maintained at ${currentNLevel}. Good effort!`;
+    }
+
+    if (nextNLevel !== currentNLevel) {
+      setNLevel(nextNLevel);
+    }
+
+    if (adaptiveMessage) {
+      toast(adaptiveMessage, {
+        duration: 4000,
+      });
+    }
+  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, numTrials, nLevel, gameMode, setNLevel]);
 
   const handleTrialTimeout = useCallback(() => {
     setIsWaitingForResponse(false);
