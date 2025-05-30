@@ -288,6 +288,12 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     if (trialTimeoutRef.current) {
       clearTimeout(trialTimeoutRef.current);
     }
+    if (synthRef.current && audioEnabled) { // Check audioEnabled
+      synthRef.current.cancel();
+    }
+    setCurrentPosition(null);
+    setCurrentLetter('');
+    setIsWaitingForResponse(false);
   };
 
   if (gameState === 'setup') {
