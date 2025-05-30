@@ -86,7 +86,7 @@ const GameInterface = ({
   const startTrialRef = useRef<() => void>();
   const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
   
-  const isAdaptiveDifficultyEnabled = useSettingsStore( // Access store state
+  const isAdaptiveDifficultyEnabled = useSettingsStore(
     (state) => state.isAdaptiveDifficultyEnabled
   );
 
@@ -314,20 +314,22 @@ const GameInterface = ({
     nLevel,
     gameMode,
     setNLevel,
-    isAdaptiveDifficultyEnabled // Added dependency
-    // toast // Technically toast is a dependency if used within this callback
+    isAdaptiveDifficultyEnabled
   ]);
 
   const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode) {
-      const trialIndex = currentTrial;
-      const visualExpected = visualMatches[trialIndex];
-      // Since practice mode is 'single-visual'
-      if (visualExpected) {
-        toast.error("Missed Match!", { duration: 1500 });
-      } else {
-        toast.info("Correct: No match there.", { duration: 1500 });
+    // In practice mode, userVisualResponses[currentTrial] should be false here
+    // because handleResponse would have cleared the trialTimeout if a key was pressed.
+    if (isPracticeMode && visualMatches.length > currentTrial) { // Ensure visualMatches is populated
+      const visualExpected = visualMatches[currentTrial];
+      if (PRACTICE_MODE === 'single-visual') { // Check against the defined practice mode
+        if (visualExpected) {
+          toast.error("Missed Match!", { duration: 1500 });
+        } else {
+          toast.info("Correct: No match there.", { duration: 1500 });
+        }
       }
+      // Add similar logic here for audio/dual practice modes if they are introduced
     }
 
     setIsWaitingForResponse(false);
@@ -463,9 +465,11 @@ const GameInterface = ({
     currentTrial,
     visualResponseMadeThisTrial,
     audioResponseMadeThisTrial,
-    isPracticeMode, // Added
-    visualMatches, // Added for practice feedback
-    userVisualResponses // Added for practice feedback
+    isPracticeMode,
+    visualMatches,
+    userVisualResponses,
+    audioMatches, // Added for future-proofing if practice mode changes
+    userAudioResponses // Added for future-proofing
   ]);
 
   // Effect to end session when all trials are completed
@@ -544,6 +548,16 @@ const GameInterface = ({
     setCurrentLetter('');
     setIsWaitingForResponse(false);
   };
+
+  // Early return for practice mode initialization to prevent setup screen flash
+  if (isPracticeMode && gameState === 'setup') {
+    // The useEffect for auto-starting will change gameState to 'playing'
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <p className="text-xl font-semibold text-gray-700 animate-pulse">Loading practice round...</p>
+      </div>
+    );
+  }
 
   if (gameState === 'setup') {
     return (
