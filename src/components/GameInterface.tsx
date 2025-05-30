@@ -50,68 +50,15 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
   
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
-    if (!isWaitingForResponse) return;
-    
-    const responseTime = Date.now() - trialStartTime;
-    setResponseTimes(prev => [...prev, responseTime]);
-    
-    if (responseType === 'visual') {
-      setUserVisualResponses(prev => [...prev, true]);
-      setUserAudioResponses(prev => [...prev, false]);
-    } else {
-      setUserVisualResponses(prev => [...prev, false]);
-      setUserAudioResponses(prev => [...prev, true]);
-    }
-    
-    setIsWaitingForResponse(false);
-    setCurrentPosition(null);
-    setCurrentLetter('');
-    
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current);
-    }
-    
-    setCurrentTrial(prev => {
-      const next = prev + 1;
-      if (next < totalTrials) {
-        setTimeout(startTrial, 1000);
-      } else {
-        endSession();
-      }
-      return next;
-    });
-  }, [isWaitingForResponse, trialStartTime, totalTrials]);
-
-  // Add keyboard event listener
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (gameState === 'playing' && isWaitingForResponse) {
-        if (event.key.toLowerCase() === 'a' && (gameMode === 'single-visual' || gameMode === 'dual')) {
-          handleResponse('visual');
-        } else if (event.key.toLowerCase() === 'l' && (gameMode === 'single-audio' || gameMode === 'dual')) {
-          handleResponse('audio');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState, isWaitingForResponse, gameMode, handleResponse]);
-
-  useEffect(() => {
-    if (audioEnabled) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, [audioEnabled]);
-
-  const playAudioLetter = useCallback((letter: string) => {
+  const playAudioLetter = useCallback(async (letter: string) => {
     if (!audioEnabled || !audioContextRef.current) return;
+    
+    console.log('Playing audio for letter:', letter);
+    
+    // Resume audio context if suspended (browser autoplay policy)
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
     
     const frequency = 200 + (letter.charCodeAt(0) - 65) * 50;
     const oscillator = audioContextRef.current.createOscillator();
@@ -129,6 +76,47 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     oscillator.start(audioContextRef.current.currentTime);
     oscillator.stop(audioContextRef.current.currentTime + 0.5);
   }, [audioEnabled]);
+
+  const endSession = useCallback(() => {
+    setGameState('results');
+    
+    let visualCorrect = 0;
+    let audioCorrect = 0;
+    
+    for (let i = 0; i < totalTrials; i++) {
+      const visualExpected = visualMatches[i] || false;
+      const audioExpected = audioMatches[i] || false;
+      const visualResponse = userVisualResponses[i] || false;
+      const audioResponse = userAudioResponses[i] || false;
+      
+      if (visualExpected === visualResponse) visualCorrect++;
+      if (audioExpected === audioResponse) audioCorrect++;
+    }
+    
+    const visualAccuracy = (visualCorrect / totalTrials) * 100;
+    const audioAccuracy = (audioCorrect / totalTrials) * 100;
+    const overallAccuracy = gameMode === 'dual' ? 
+      (visualAccuracy + audioAccuracy) / 2 : 
+      (gameMode === 'single-visual' ? visualAccuracy : audioAccuracy);
+    
+    const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    
+    const session: GameSession = {
+      trials: totalTrials,
+      nLevel,
+      accuracy: overallAccuracy,
+      visualAccuracy,
+      audioAccuracy,
+      averageResponseTime: avgResponseTime,
+      mode: gameMode
+    };
+    
+    const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
+    sessions.push(session);
+    localStorage.setItem('nback-sessions', JSON.stringify(sessions));
+    
+    toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
+  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, totalTrials, nLevel, gameMode]);
 
   const generateStimulus = useCallback(() => {
     const newPosition = Math.floor(Math.random() * 9);
@@ -184,48 +172,68 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
       }
       return next;
     });
-  }, [totalTrials]);
+  }, [totalTrials, startTrial, endSession]);
 
-  const endSession = useCallback(() => {
-    setGameState('results');
+  const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
+    if (!isWaitingForResponse) return;
     
-    let visualCorrect = 0;
-    let audioCorrect = 0;
+    const responseTime = Date.now() - trialStartTime;
+    setResponseTimes(prev => [...prev, responseTime]);
     
-    for (let i = 0; i < totalTrials; i++) {
-      const visualExpected = visualMatches[i] || false;
-      const audioExpected = audioMatches[i] || false;
-      const visualResponse = userVisualResponses[i] || false;
-      const audioResponse = userAudioResponses[i] || false;
-      
-      if (visualExpected === visualResponse) visualCorrect++;
-      if (audioExpected === audioResponse) audioCorrect++;
+    if (responseType === 'visual') {
+      setUserVisualResponses(prev => [...prev, true]);
+      setUserAudioResponses(prev => [...prev, false]);
+    } else {
+      setUserVisualResponses(prev => [...prev, false]);
+      setUserAudioResponses(prev => [...prev, true]);
     }
     
-    const visualAccuracy = (visualCorrect / totalTrials) * 100;
-    const audioAccuracy = (audioCorrect / totalTrials) * 100;
-    const overallAccuracy = gameMode === 'dual' ? 
-      (visualAccuracy + audioAccuracy) / 2 : 
-      (gameMode === 'single-visual' ? visualAccuracy : audioAccuracy);
+    setIsWaitingForResponse(false);
+    setCurrentPosition(null);
+    setCurrentLetter('');
     
-    const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+    if (trialTimeoutRef.current) {
+      clearTimeout(trialTimeoutRef.current);
+    }
     
-    const session: GameSession = {
-      trials: totalTrials,
-      nLevel,
-      accuracy: overallAccuracy,
-      visualAccuracy,
-      audioAccuracy,
-      averageResponseTime: avgResponseTime,
-      mode: gameMode
+    setCurrentTrial(prev => {
+      const next = prev + 1;
+      if (next < totalTrials) {
+        setTimeout(startTrial, 1000);
+      } else {
+        endSession();
+      }
+      return next;
+    });
+  }, [isWaitingForResponse, trialStartTime, totalTrials, startTrial, endSession]);
+
+  // Add keyboard event listener
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (gameState === 'playing' && isWaitingForResponse) {
+        if (event.key.toLowerCase() === 'a' && (gameMode === 'single-visual' || gameMode === 'dual')) {
+          handleResponse('visual');
+        } else if (event.key.toLowerCase() === 'l' && (gameMode === 'single-audio' || gameMode === 'dual')) {
+          handleResponse('audio');
+        }
+      }
     };
-    
-    const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
-    sessions.push(session);
-    localStorage.setItem('nback-sessions', JSON.stringify(sessions));
-    
-    toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
-  }, [visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, totalTrials, nLevel, gameMode]);
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameState, isWaitingForResponse, gameMode, handleResponse]);
+
+  useEffect(() => {
+    if (audioEnabled) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      console.log('Audio context created:', audioContextRef.current);
+    }
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [audioEnabled]);
 
   const startGame = () => {
     setGameState('playing');
