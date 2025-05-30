@@ -20,7 +20,19 @@ interface GameSession {
   audioAccuracy: number;
   averageResponseTime: number;
   mode: string;
-  timestamp: string; // Changed to string
+  timestamp: string;
+
+  // New detailed counts (optional)
+  actualVisualMatches?: number;
+  visualHits?: number;
+  visualMisses?: number;
+  visualFalseAlarms?: number;
+  visualCorrectRejections?: number;
+  actualAudioMatches?: number;
+  audioHits?: number;
+  audioMisses?: number;
+  audioFalseAlarms?: number;
+  audioCorrectRejections?: number;
 }
 
 const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) => {
@@ -372,16 +384,26 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                 <CardContent>
                   <div className="space-y-3">
                     {sessions.slice(-5).reverse().map((session, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline">{session.nLevel}-Back</Badge>
-                          <span className="text-sm text-gray-600 capitalize">
-                            {session.mode.replace('-', ' ')}
-                          </span>
+                      <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="outline">{session.nLevel}-Back</Badge>
+                            <span className="text-sm text-gray-600 capitalize">
+                              {session.mode.replace('-', ' ')}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">{session.accuracy.toFixed(1)}%</div>
+                            <div className="text-xs text-gray-500">{session.averageResponseTime.toFixed(0)}ms</div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold">{session.accuracy.toFixed(1)}%</div>
-                          <div className="text-xs text-gray-500">{session.averageResponseTime.toFixed(0)}ms</div>
+                        <div className="mt-1 text-xs text-gray-500 flex items-center gap-3">
+                          {(session.mode === 'single-visual' || session.mode === 'dual') && (
+                            <span>V-Hits: {session.visualHits ?? 0}/{session.actualVisualMatches ?? 0}</span>
+                          )}
+                          {(session.mode === 'single-audio' || session.mode === 'dual') && (
+                            <span>A-Hits: {session.audioHits ?? 0}/{session.actualAudioMatches ?? 0}</span>
+                          )}
                         </div>
                       </div>
                     ))}
