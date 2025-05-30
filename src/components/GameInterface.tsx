@@ -288,6 +288,12 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
     if (trialTimeoutRef.current) {
       clearTimeout(trialTimeoutRef.current);
     }
+    if (synthRef.current && audioEnabled) { // Check audioEnabled
+      synthRef.current.cancel();
+    }
+    setCurrentPosition(null);
+    setCurrentLetter('');
+    setIsWaitingForResponse(false);
   };
 
   if (gameState === 'setup') {
@@ -466,7 +472,10 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                   <button 
                     onClick={() => handleResponse('visual')}
                     disabled={!isWaitingForResponse}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]"
+                    className={`
+                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
+                      hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
+                    `}
                   >
                     <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">A</span>
                     Position Match
@@ -476,7 +485,10 @@ const GameInterface = ({ onBack, onViewStats }: GameInterfaceProps) => {
                   <button 
                     onClick={() => handleResponse('audio')}
                     disabled={!isWaitingForResponse}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]"
+                    className={`
+                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
+                      hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
+                    `}
                   >
                     <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">L</span>
                     Sound Match
