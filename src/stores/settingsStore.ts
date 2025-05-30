@@ -5,8 +5,11 @@ interface SettingsState {
   isHighContrastMode: boolean;
   toggleHighContrastMode: () => void;
   setHighContrastMode: (value: boolean) => void;
-  fontSize: string; // Added
-  setFontSize: (size: string) => void; // Added
+  fontSize: string;
+  setFontSize: (size: string) => void;
+
+  isAdaptiveDifficultyEnabled: boolean; // New
+  toggleAdaptiveDifficulty: () => void;  // New
 }
 
 // Helper function to apply theme class to body
@@ -27,7 +30,7 @@ const applyFontSizeToHtml = (size: string) => {
     } else if (size === 'xlarge') {
       document.documentElement.classList.add('text-size-xlarge');
     }
-    // 'default' size means no extra class is added, or 'text-size-default' if we had one.
+    // 'default' size means no extra class is added
   }
 };
 
@@ -35,7 +38,9 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
       isHighContrastMode: false,
-      fontSize: 'default', // Initial state for fontSize
+      fontSize: 'default',
+      isAdaptiveDifficultyEnabled: true, // Default adaptive difficulty to true
+
       toggleHighContrastMode: () => {
         const newMode = !get().isHighContrastMode;
         set({ isHighContrastMode: newMode });
@@ -45,9 +50,14 @@ export const useSettingsStore = create<SettingsState>()(
         set({ isHighContrastMode: value });
         applyThemeToBody(value);
       },
-      setFontSize: (size) => { // Added setFontSize action
+      setFontSize: (size) => {
         set({ fontSize: size });
         applyFontSizeToHtml(size);
+      },
+      toggleAdaptiveDifficulty: () => { // New action
+        const newMode = !get().isAdaptiveDifficultyEnabled;
+        set({ isAdaptiveDifficultyEnabled: newMode });
+        // No direct DOM side effect needed for this toggle itself
       },
     }),
     {
@@ -56,8 +66,9 @@ export const useSettingsStore = create<SettingsState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyThemeToBody(state.isHighContrastMode);
-          // Ensure fontSize is applied on rehydration, defaulting if undefined
           applyFontSizeToHtml(state.fontSize || 'default');
+          // isAdaptiveDifficultyEnabled does not need explicit action on rehydrate here,
+          // components will read its value.
         }
       }
     }
@@ -83,9 +94,11 @@ if (typeof window !== 'undefined') {
         } else {
           applyFontSizeToHtml('default'); // Default if not set
         }
+        // isAdaptiveDifficultyEnabled will be picked up by components from the store once it initializes/rehydrates.
+        // No direct DOM manipulation needed here for it.
       }
     } else {
-      // If no persisted state, apply defaults
+      // If no persisted state, apply defaults for visual settings
       applyThemeToBody(false);
       applyFontSizeToHtml('default');
     }
