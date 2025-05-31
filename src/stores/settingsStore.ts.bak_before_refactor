@@ -13,16 +13,16 @@ interface SettingsState {
 }
 
 // Helper function to apply theme class to body
-export const applyThemeToBody = (isHighContrast: boolean) => {
+const applyThemeToBody = (isHighContrast: boolean) => {
   if (typeof window !== 'undefined') {
     document.body.classList.toggle('theme-high-contrast', isHighContrast);
   }
 };
 
 // Helper array and function for font size
-export const FONT_SIZE_CLASSES = ['text-size-large', 'text-size-xlarge']; // Only non-default classes
+const FONT_SIZE_CLASSES = ['text-size-large', 'text-size-xlarge']; // Only non-default classes
 
-export const applyFontSizeToHtml = (size: string) => {
+const applyFontSizeToHtml = (size: string) => {
   if (typeof window !== 'undefined') {
     FONT_SIZE_CLASSES.forEach(cls => document.documentElement.classList.remove(cls));
     if (size === 'large') {
@@ -44,15 +44,15 @@ export const useSettingsStore = create<SettingsState>()(
       toggleHighContrastMode: () => {
         const newMode = !get().isHighContrastMode;
         set({ isHighContrastMode: newMode });
-
+        applyThemeToBody(newMode);
       },
       setHighContrastMode: (value) => {
         set({ isHighContrastMode: value });
-
+        applyThemeToBody(value);
       },
       setFontSize: (size) => {
         set({ fontSize: size });
-
+        applyFontSizeToHtml(size);
       },
       toggleAdaptiveDifficulty: () => { // New action
         const newMode = !get().isAdaptiveDifficultyEnabled;
@@ -65,8 +65,8 @@ export const useSettingsStore = create<SettingsState>()(
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // applyThemeToBody(state.isHighContrastMode); // DOM moved to SettingsApplier
-          // applyFontSizeToHtml(state.fontSize || 'default'); // DOM moved to SettingsApplier
+          applyThemeToBody(state.isHighContrastMode);
+          applyFontSizeToHtml(state.fontSize || 'default');
           // isAdaptiveDifficultyEnabled does not need explicit action on rehydrate here,
           // components will read its value.
         }
@@ -75,4 +75,37 @@ export const useSettingsStore = create<SettingsState>()(
   )
 );
 
-// Initial load script block removed, SettingsApplier component handles this.
+// Apply settings on initial client-side load
+if (typeof window !== 'undefined') {
+  try {
+    const persistedStateString = localStorage.getItem('app-settings');
+    if (persistedStateString) {
+      const persistedState = JSON.parse(persistedStateString);
+      if (persistedState && persistedState.state) {
+        // Apply high contrast mode
+        if (typeof persistedState.state.isHighContrastMode === 'boolean') {
+          applyThemeToBody(persistedState.state.isHighContrastMode);
+        } else {
+          applyThemeToBody(false); // Default if not set
+        }
+        // Apply font size
+        if (typeof persistedState.state.fontSize === 'string') {
+          applyFontSizeToHtml(persistedState.state.fontSize);
+        } else {
+          applyFontSizeToHtml('default'); // Default if not set
+        }
+        // isAdaptiveDifficultyEnabled will be picked up by components from the store once it initializes/rehydrates.
+        // No direct DOM manipulation needed here for it.
+      }
+    } else {
+      // If no persisted state, apply defaults for visual settings
+      applyThemeToBody(false);
+      applyFontSizeToHtml('default');
+    }
+  } catch (e) {
+    console.error("Error applying initial settings from localStorage:", e);
+    // Fallback to ensure default state if an error occurs
+    applyThemeToBody(false);
+    applyFontSizeToHtml('default');
+  }
+}
