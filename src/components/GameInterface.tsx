@@ -46,11 +46,11 @@ const PRACTICE_MODE = 'single-visual' as GameMode;
 const PRACTICE_N_LEVEL = 1; // 1-Back for practice
 const PRACTICE_NUM_TRIALS = 7; // Short session
 
-const GameInterface = ({
-  onBack,
-  onViewStats,
-  isPracticeMode = false,
-  onPracticeComplete
+const GameInterface = ({ 
+  onBack, 
+  onViewStats, 
+  isPracticeMode = false, 
+  onPracticeComplete 
 }: GameInterfaceProps) => {
   const [gameMode, setGameMode] = useState<GameMode>(
     isPracticeMode ? PRACTICE_MODE : 'single-visual'
@@ -62,8 +62,8 @@ const GameInterface = ({
   const [currentTrial, setCurrentTrial] = useState(0);
   const [numTrials, setNumTrials] = useState<number>(
     isPracticeMode ? PRACTICE_NUM_TRIALS : 20
-  );
-  const [stimulusDurationMs, setStimulusDurationMs] = useState(3000);
+  ); 
+  const [stimulusDurationMs, setStimulusDurationMs] = useState(3000); 
   const [audioEnabled, setAudioEnabled] = useState(true);
   
   // Game state
@@ -86,7 +86,7 @@ const GameInterface = ({
   const startTrialRef = useRef<() => void>();
   const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
   
-  const isAdaptiveDifficultyEnabled = useSettingsStore(
+  const isAdaptiveDifficultyEnabled = useSettingsStore( // Access store state
     (state) => state.isAdaptiveDifficultyEnabled
   );
 
@@ -109,18 +109,18 @@ const GameInterface = ({
   const generateStimulus = useCallback(() => {
     const newPosition = Math.floor(Math.random() * 9);
     const newLetter = letters[Math.floor(Math.random() * letters.length)];
-
+    
     setVisualSequence(prev => [...prev, newPosition]);
     setAudioSequence(prev => [...prev, newLetter]);
-
-    const visualMatch = visualSequence.length >= nLevel &&
+    
+    const visualMatch = visualSequence.length >= nLevel && 
                        visualSequence[visualSequence.length - nLevel] === newPosition;
-    const audioMatch = audioSequence.length >= nLevel &&
+    const audioMatch = audioSequence.length >= nLevel && 
                       audioSequence[audioSequence.length - nLevel] === newLetter;
-
+    
     setVisualMatches(prev => [...prev, visualMatch]);
     setAudioMatches(prev => [...prev, audioMatch]);
-
+    
     return { newPosition, newLetter, visualMatch, audioMatch };
   }, [visualSequence, audioSequence, nLevel]);
 
@@ -148,7 +148,7 @@ const GameInterface = ({
       }
       // Consider calling resetGame() or navigating away if onPracticeComplete is not guaranteed
       // For now, assuming onPracticeComplete handles navigation or next steps.
-      return;
+      return; 
     }
 
     setGameState('results');
@@ -252,7 +252,7 @@ const GameInterface = ({
       averageResponseTime: avgResponseTime,
       mode: gameMode,
       timestamp: new Date().toISOString(),
-
+      
       actualVisualMatches,
       visualHits,
       visualMisses,
@@ -274,7 +274,7 @@ const GameInterface = ({
 
     // Adaptive Difficulty Logic
     if (isAdaptiveDifficultyEnabled) {
-      const currentNLevel = nLevel;
+      const currentNLevel = nLevel; 
       let nextNLevel = currentNLevel;
       let adaptiveMessage = "";
 
@@ -303,33 +303,31 @@ const GameInterface = ({
       }
     }
   }, [
-    isPracticeMode,
-    onPracticeComplete,
-    visualMatches,
-    audioMatches,
-    userVisualResponses,
-    userAudioResponses,
-    responseTimes,
-    numTrials,
-    nLevel,
-    gameMode,
+    isPracticeMode, 
+    onPracticeComplete, 
+    visualMatches, 
+    audioMatches, 
+    userVisualResponses, 
+    userAudioResponses, 
+    responseTimes, 
+    numTrials, 
+    nLevel, 
+    gameMode, 
     setNLevel,
-    isAdaptiveDifficultyEnabled
+    isAdaptiveDifficultyEnabled // Added dependency
+    // toast // Technically toast is a dependency if used within this callback
   ]);
 
   const handleTrialTimeout = useCallback(() => {
-    // In practice mode, userVisualResponses[currentTrial] should be false here
-    // because handleResponse would have cleared the trialTimeout if a key was pressed.
-    if (isPracticeMode && visualMatches.length > currentTrial) { // Ensure visualMatches is populated
-      const visualExpected = visualMatches[currentTrial];
-      if (PRACTICE_MODE === 'single-visual') { // Check against the defined practice mode
-        if (visualExpected) {
-          toast.error("Missed Match!", { duration: 1500 });
-        } else {
-          toast.info("Correct: No match there.", { duration: 1500 });
-        }
+    if (isPracticeMode) {
+      const trialIndex = currentTrial; 
+      const visualExpected = visualMatches[trialIndex];
+      // Since practice mode is 'single-visual'
+      if (visualExpected) { 
+        toast.error("Missed Match!", { duration: 1500 });
+      } else { 
+        toast.info("Correct: No match there.", { duration: 1500 });
       }
-      // Add similar logic here for audio/dual practice modes if they are introduced
     }
 
     setIsWaitingForResponse(false);
@@ -371,14 +369,14 @@ const GameInterface = ({
   useEffect(() => {
     startTrialRef.current = startTrial;
   }, [startTrial]);
-
+  
   const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
     if (!isWaitingForResponse) return;
     
     const responseTime = Date.now() - trialStartTime;
     setResponseTimes(prev => [...prev, responseTime]);
     
-    const trialIndexToUpdate = currentTrial;
+    const trialIndexToUpdate = currentTrial; 
 
     let currentVisualResponseMade = visualResponseMadeThisTrial;
     let currentAudioResponseMade = audioResponseMadeThisTrial;
@@ -420,7 +418,7 @@ const GameInterface = ({
       }
       // Misses and Correct Rejections (no key press) for practice are handled in handleTrialTimeout
     }
-
+    
     const performTrialAdvancement = () => {
       // This function contains the logic to clear stimuli and schedule the next trial
       setCurrentPosition(null);
@@ -457,19 +455,17 @@ const GameInterface = ({
       performTrialAdvancement();
     }
   }, [
-    isWaitingForResponse,
-    trialStartTime,
-    numTrials,
-    endSession,
-    gameMode,
-    currentTrial,
-    visualResponseMadeThisTrial,
+    isWaitingForResponse, 
+    trialStartTime, 
+    numTrials, 
+    endSession, 
+    gameMode, 
+    currentTrial, 
+    visualResponseMadeThisTrial, 
     audioResponseMadeThisTrial,
-    isPracticeMode,
-    visualMatches,
-    userVisualResponses,
-    audioMatches, // Added for future-proofing if practice mode changes
-    userAudioResponses // Added for future-proofing
+    isPracticeMode, // Added
+    visualMatches, // Added for practice feedback
+    userVisualResponses // Added for practice feedback
   ]);
 
   // Effect to end session when all trials are completed
@@ -512,9 +508,9 @@ const GameInterface = ({
   }, [
     setGameState, setCurrentTrial, setVisualSequence, setAudioSequence,
     setVisualMatches, setAudioMatches, setUserVisualResponses,
-    setUserAudioResponses, setResponseTimes, numTrials,
+    setUserAudioResponses, setResponseTimes, numTrials, 
     // startTrial // startTrial (the function itself) is a dependency
-    // Since startTrial is memoized and startTrialRef points to it,
+    // Since startTrial is memoized and startTrialRef points to it, 
     // depending on startTrialRef.current directly in useEffect is not ideal.
     // The current setup uses startTrialRef.current?.() which is fine.
     // For this useCallback, if startTrial is stable, it's okay. Given it's memoized, let's add it.
@@ -523,7 +519,7 @@ const GameInterface = ({
     // or use the ref if we are trying to avoid re-memoizing startGame too often.
     // Let's assume startTrial (the memoized callback) is stable enough.
     // Re-evaluating: startTrial is memoized, including it is correct.
-    startTrial
+    startTrial 
   ]);
 
   // useEffect to auto-start game in practice mode
@@ -548,16 +544,6 @@ const GameInterface = ({
     setCurrentLetter('');
     setIsWaitingForResponse(false);
   };
-
-  // Early return for practice mode initialization to prevent setup screen flash
-  if (isPracticeMode && gameState === 'setup') {
-    // The useEffect for auto-starting will change gameState to 'playing'
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-        <p className="text-xl font-semibold text-gray-700 animate-pulse">Loading practice round...</p>
-      </div>
-    );
-  }
 
   if (gameState === 'setup') {
     return (
@@ -640,19 +626,19 @@ const GameInterface = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">Number of Trials</label>
                   <div className="flex items-center gap-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNumTrials(prev => Math.max(10, prev - 5))}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setNumTrials(prev => Math.max(10, prev - 5))} 
                       disabled={isPracticeMode || numTrials <= 10}
                     >
                       -
                     </Button>
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">{numTrials}</Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNumTrials(prev => Math.min(50, prev + 5))}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setNumTrials(prev => Math.min(50, prev + 5))} 
                       disabled={isPracticeMode || numTrials >= 50}
                     >
                       +
@@ -664,10 +650,10 @@ const GameInterface = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">Stimulus Duration</label>
                   <div className="flex items-center gap-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))} 
                       disabled={isPracticeMode || stimulusDurationMs <= 2000}
                     >
                       -
@@ -675,10 +661,10 @@ const GameInterface = ({
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
                       {(stimulusDurationMs / 1000).toFixed(1)}s
                     </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))} 
                       disabled={isPracticeMode || stimulusDurationMs >= 4000}
                     >
                       +
@@ -799,7 +785,7 @@ const GameInterface = ({
                     onClick={() => handleResponse('visual')}
                     disabled={!isWaitingForResponse}
                     className={`
-                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'}
+                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
                       hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
                     `}
                   >
@@ -812,7 +798,7 @@ const GameInterface = ({
                     onClick={() => handleResponse('audio')}
                     disabled={!isWaitingForResponse}
                     className={`
-                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'}
+                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} 
                       hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
                     `}
                   >
