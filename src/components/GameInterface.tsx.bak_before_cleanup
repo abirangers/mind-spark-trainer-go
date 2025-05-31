@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, Volume2, VolumeX, Play, Pause, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { AdaptiveDifficultyToggle } from '@/components/ui/AdaptiveDifficultyToggle';
 import { useSettingsStore } from '@/stores/settingsStore'; // Added import
 import { useStimulusGeneration } from '@/hooks/game/useStimulusGeneration';
 import { useGameLogic } from '@/hooks/game/useGameLogic';
@@ -47,18 +52,33 @@ const PRACTICE_MODE = 'single-visual' as GameMode;
 const PRACTICE_N_LEVEL = 1; // 1-Back for practice
 const PRACTICE_NUM_TRIALS = 7; // Short session
 
-const GameInterface = ({ 
-  onBack, 
-  onViewStats, 
-  isPracticeMode = false, 
-  onPracticeComplete 
+const GameInterface = ({
+  onBack,
+  onViewStats,
+  isPracticeMode = false,
+  onPracticeComplete
 }: GameInterfaceProps) => {
+  // MOVED TO useTrialManagement: const [currentTrial, setCurrentTrial] = useState(0);
+  // MOVED TO useTrialManagement: const [stimulusDurationMs, setStimulusDurationMs] = useState(3000);
   const [audioEnabled, setAudioEnabled] = useState(true); // audioEnabled still managed here for now
-  
+
   // Game state (stimulus display, user responses - to be moved or managed by useTrialManagement)
-  
+  // MOVED TO useTrialManagement: const [currentPosition, setCurrentPosition] = useState<number | null>(null);
+  // MOVED TO useTrialManagement: const [currentLetter, setCurrentLetter] = useState<string>('');
+  // MOVED TO useTrialManagement: const [userVisualResponses, setUserVisualResponses] = useState<boolean[]>([]);
+  // MOVED TO useTrialManagement: const [userAudioResponses, setUserAudioResponses] = useState<boolean[]>([]);
+  // MOVED TO useTrialManagement: const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+  // MOVED TO useTrialManagement: const [trialStartTime, setTrialStartTime] = useState<number>(0);
+  // MOVED TO useTrialManagement: const [responseTimes, setResponseTimes] = useState<number[]>([]);
+  // MOVED TO useTrialManagement: const [visualResponseMadeThisTrial, setVisualResponseMadeThisTrial] = useState(false);
+  // MOVED TO useTrialManagement: const [audioResponseMadeThisTrial, setAudioResponseMadeThisTrial] = useState(false);
+
   // Refs moved to useTrialManagement or useStimulusGeneration
-  
+  // MOVED TO useTrialManagement: const trialTimeoutRef = useRef<NodeJS.Timeout>();
+  // MOVED TO useStimulusGeneration: const synthRef = useRef<SpeechSynthesis | null>(null);
+  // MOVED TO useTrialManagement: const startTrialRef = useRef<() => void>();
+  // MOVED TO useTrialManagement: const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
+
   const isAdaptiveDifficultyEnabled = useSettingsStore( // Access store state
     (state) => state.isAdaptiveDifficultyEnabled
   );
@@ -146,7 +166,22 @@ const GameInterface = ({
   // are intended to be moved to useGameLogic. For now, they are commented out below or removed.
   // The new `startGame` and `resetGame` from `useGameLogic` should be used.
 
+  // MOVED TO useGameLogic: const endSession = useCallback(() => {
     // ...
+  // MOVED TO useGameLogic: }, [
+  // MOVED TO useGameLogic: isPracticeMode,
+  // MOVED TO useGameLogic: onPracticeComplete,
+  // MOVED TO useGameLogic: visualMatches, // Now correctly sourced from stimulusGenerationResult via gameLogicResult props
+  // MOVED TO useGameLogic: audioMatches,  // Now correctly sourced
+  // MOVED TO useGameLogic: userVisualResponses,
+  // MOVED TO useGameLogic: userAudioResponses,
+  // MOVED TO useGameLogic: responseTimes,
+  // MOVED TO useGameLogic: numTrials, // From gameLogicResult
+  // MOVED TO useGameLogic: nLevel,    // From gameLogicResult
+  // MOVED TO useGameLogic: gameMode,  // From gameLogicResult
+  // MOVED TO useGameLogic: setNLevel, // From gameLogicResult
+  // MOVED TO useGameLogic: isAdaptiveDifficultyEnabled
+  // MOVED TO useGameLogic: ]);
 
   // const endSession = useCallback(() => { // MOVED TO useGameLogic
     // Entire body of endSession is now in useGameLogic.
@@ -154,18 +189,22 @@ const GameInterface = ({
     // Stats display on results screen will also use data ultimately derived from hook states.
   // }, [ /* Dependencies are now managed within useGameLogic */ ]);
 
+  // MOVED TO useTrialManagement (or handled by its interaction with useGameLogic)
   // const handleTrialTimeout = useCallback(() => { ... }); // Already commented
 
+  // MOVED TO useTrialManagement (logic will be part of it)
   // const startTrial = useCallback(() => { ... }); // Already commented
 
+  // MOVED TO useTrialManagement (startTrialRef pattern might change)
   // useEffect(() => { ... }); // Already commented
-  
+
+  // MOVED TO useTrialManagement
   // const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
     // if (!isWaitingForResponse) return;
-    
+
     // const responseTime = Date.now() - trialStartTime;
     // setResponseTimes(prev => [...prev, responseTime]);
-    
+
     // const trialIndexToUpdate = currentTrial;
 
     // let currentVisualResponseMade = visualResponseMadeThisTrial;
@@ -205,7 +244,7 @@ const GameInterface = ({
         // toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
       // }
     // }
-    
+
     // const performTrialAdvancement = () => {
       // setCurrentPosition(null);
       // setCurrentLetter('');
@@ -249,6 +288,7 @@ const GameInterface = ({
     // userVisualResponses
   // ]);
 
+  // MOVED TO useGameLogic (monitors gameState and currentTrial)
   // useEffect(() => {
     // if (gameState === 'playing' && currentTrial === numTrials) {
       // endSession(); // Old endSession
@@ -273,6 +313,7 @@ const GameInterface = ({
   // }, [gameState, isWaitingForResponse, gameMode, handleResponse]); // handleResponse is commented out
   }, [gameState, isWaitingForResponse, gameMode]); // Removed handleResponse from deps
 
+  // MOVED TO useGameLogic (this is the old GameInterface.tsx startGame)
   // const startGame = useCallback(() => {
     // setGameState('playing'); // Should use setGameState from useGameLogic
     // setCurrentTrial(0);
@@ -288,6 +329,7 @@ const GameInterface = ({
     // startTrial // This was the temporary startTrial in GameInterface
   // ]);
 
+  // MOVED TO useGameLogic (monitors gameState and isPracticeMode)
   // useEffect(() => { ... }); // Already commented (auto-start practice)
 
   // This function in GameInterface now calls the resetGame from useGameLogic
@@ -306,7 +348,7 @@ const GameInterface = ({
 
   if (gameState === 'setup') {
     if (isPracticeMode) {
-      return null; 
+      return null;
     }
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
@@ -332,7 +374,7 @@ const GameInterface = ({
                     { mode: 'single-audio' as const, title: 'Single N-Back (Audio)', desc: 'Remember audio letters only' },
                     { mode: 'dual' as const, title: 'Dual N-Back', desc: 'Remember both visual and audio stimuli' }
                   ].map(({ mode: itemMode, title, desc }) => ( // Renamed mode to itemMode to avoid conflict with gameMode from hook
-                    <div 
+                    <div
                       key={itemMode}
                       className={`p-4 border-2 rounded-lg transition-all ${
                         gameMode === itemMode ? 'border-blue-500 bg-blue-50' : 'border-gray-200' // Use gameMode from hook
@@ -360,8 +402,8 @@ const GameInterface = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">N-Level (Difficulty)</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => setNLevel(prev => Math.max(1, prev - 1))} // Use setNLevel from hook
                       disabled={isPracticeMode || nLevel <= 1} // Use nLevel from hook
@@ -371,8 +413,8 @@ const GameInterface = ({
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
                       {nLevel}-Back
                     </Badge>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => setNLevel(prev => Math.min(8, prev + 1))} // Use setNLevel from hook
                       disabled={isPracticeMode || nLevel >= 8} // Use nLevel from hook
@@ -388,18 +430,18 @@ const GameInterface = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">Number of Trials</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setNumTrials(prev => Math.max(10, prev - 5))} // Use setNumTrials from hook
                       disabled={isPracticeMode || numTrials <= 10} // Use numTrials from hook
                     >
                       -
                     </Button>
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">{numTrials}</Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setNumTrials(prev => Math.min(50, prev + 5))} // Use setNumTrials from hook
                       disabled={isPracticeMode || numTrials >= 50} // Use numTrials from hook
                     >
@@ -412,9 +454,9 @@ const GameInterface = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">Stimulus Duration</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))} // Use setStimulusDurationMs from trialM hook
                       disabled={isPracticeMode || stimulusDurationMs <= 2000} // Use stimulusDurationMs from trialM hook
                     >
@@ -423,9 +465,9 @@ const GameInterface = ({
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
                       {(stimulusDurationMs / 1000).toFixed(1)}s
                     </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))} // Use setStimulusDurationMs from trialM hook
                       disabled={isPracticeMode || stimulusDurationMs >= 4000} // Use stimulusDurationMs from trialM hook
                     >
@@ -437,8 +479,8 @@ const GameInterface = ({
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Audio Settings</label>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setAudioEnabled(!audioEnabled)} // audioEnabled is still local state
                     className="gap-2"
                   >
@@ -468,8 +510,8 @@ const GameInterface = ({
           </div>
 
           <div className="flex justify-center mt-8">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={startGame} // startGame from useGameLogic hook
               className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg gap-2"
             >
@@ -543,7 +585,7 @@ const GameInterface = ({
               {/* Response Buttons */}
               <div className="flex gap-4 justify-center pt-8">
                 {(gameMode === 'single-visual' || gameMode === 'dual') && ( // gameMode from useGameLogic
-                  <button 
+                  <button
                     onClick={() => handleResponse('visual')} // handleResponse from trialM
                     disabled={!isWaitingForResponse} // isWaitingForResponse from trialM
                     className={`
@@ -556,7 +598,7 @@ const GameInterface = ({
                   </button>
                 )}
                 {(gameMode === 'single-audio' || gameMode === 'dual') && ( // gameMode from useGameLogic
-                  <button 
+                  <button
                     onClick={() => handleResponse('audio')} // handleResponse from trialM
                     disabled={!isWaitingForResponse} // isWaitingForResponse from trialM
                     className={`
@@ -574,7 +616,7 @@ const GameInterface = ({
                 <div className="text-center space-y-2">
                   <p className="text-gray-600 text-sm">Press when current stimulus matches {nLevel} steps back</p> {/* nLevel from gameLogic */}
                   <p className="text-gray-500 text-xs">
-                    Keyboard shortcuts: 
+                    Keyboard shortcuts:
                     {(gameMode === 'single-visual' || gameMode === 'dual') && ' A for Position Match'}
                     {gameMode === 'dual' && ' • '}
                     {(gameMode === 'single-audio' || gameMode === 'dual') && ' L for Sound Match'}
