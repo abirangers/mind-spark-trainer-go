@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Volume2, VolumeX, Play, Pause, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { AdaptiveDifficultyToggle } from '@/components/ui/AdaptiveDifficultyToggle';
+import { useSettingsStore } from '@/stores/settingsStore'; // Added import
 
 interface GameInterfaceProps {
   onBack: () => void;
@@ -84,6 +86,10 @@ const GameInterface = ({
   const startTrialRef = useRef<() => void>();
   const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
   
+  const isAdaptiveDifficultyEnabled = useSettingsStore(
+    (state) => state.isAdaptiveDifficultyEnabled
+  );
+
   const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
   // Initialize Speech Synthesis
@@ -267,32 +273,34 @@ const GameInterface = ({
     toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
 
     // Adaptive Difficulty Logic
-    const currentNLevel = nLevel;
-    let nextNLevel = currentNLevel;
-    let adaptiveMessage = "";
+    if (isAdaptiveDifficultyEnabled) {
+      const currentNLevel = nLevel;
+      let nextNLevel = currentNLevel;
+      let adaptiveMessage = "";
 
-    if (overallAccuracy >= 80 && currentNLevel < 8) {
-      nextNLevel = currentNLevel + 1;
-      adaptiveMessage = `Congratulations! N-Level increased to ${nextNLevel}!`;
-    } else if (overallAccuracy < 60 && currentNLevel > 1) {
-      nextNLevel = currentNLevel - 1;
-      adaptiveMessage = `N-Level decreased to ${nextNLevel}. Keep practicing!`;
-    } else if (overallAccuracy >= 80 && currentNLevel === 8) {
-      adaptiveMessage = `You're at the max N-Level (${currentNLevel}) and performing excellently!`;
-    } else if (overallAccuracy < 60 && currentNLevel === 1) {
-      adaptiveMessage = `N-Level remains at ${currentNLevel}. Keep it up!`;
-    } else { // Maintained level (60-79%) or no change possible
-      adaptiveMessage = `N-Level maintained at ${currentNLevel}. Good effort!`;
-    }
+      if (overallAccuracy >= 80 && currentNLevel < 8) {
+        nextNLevel = currentNLevel + 1;
+        adaptiveMessage = `Congratulations! N-Level increased to ${nextNLevel}!`;
+      } else if (overallAccuracy < 60 && currentNLevel > 1) {
+        nextNLevel = currentNLevel - 1;
+        adaptiveMessage = `N-Level decreased to ${nextNLevel}. Keep practicing!`;
+      } else if (overallAccuracy >= 80 && currentNLevel === 8) {
+        adaptiveMessage = `You're at the max N-Level (${currentNLevel}) and performing excellently!`;
+      } else if (overallAccuracy < 60 && currentNLevel === 1) {
+        adaptiveMessage = `N-Level remains at ${currentNLevel}. Keep it up!`;
+      } else { // Maintained level (60-79%) or no change possible
+        adaptiveMessage = `N-Level maintained at ${currentNLevel}. Good effort!`;
+      }
 
-    if (nextNLevel !== currentNLevel) {
-      setNLevel(nextNLevel);
-    }
+      if (nextNLevel !== currentNLevel) {
+        setNLevel(nextNLevel);
+      }
 
-    if (adaptiveMessage) {
-      toast(adaptiveMessage, {
-        duration: 4000,
-      });
+      if (adaptiveMessage) {
+        toast(adaptiveMessage, {
+          duration: 4000,
+        });
+      }
     }
   }, [
     isPracticeMode,
@@ -306,19 +314,22 @@ const GameInterface = ({
     nLevel,
     gameMode,
     setNLevel,
-    // toast // Technically toast is a dependency if used within this callback
+    isAdaptiveDifficultyEnabled
   ]);
 
   const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode) {
-      const trialIndex = currentTrial;
-      const visualExpected = visualMatches[trialIndex];
-      // Since practice mode is 'single-visual'
-      if (visualExpected) {
-        toast.error("Missed Match!", { duration: 1500 });
-      } else {
-        toast.info("Correct: No match there.", { duration: 1500 });
+    // In practice mode, userVisualResponses[currentTrial] should be false here
+    // because handleResponse would have cleared the trialTimeout if a key was pressed.
+    if (isPracticeMode && visualMatches.length > currentTrial) { // Ensure visualMatches is populated
+      const visualExpected = visualMatches[currentTrial];
+      if (PRACTICE_MODE === 'single-visual') { // Check against the defined practice mode
+        if (visualExpected) {
+          toast.error("Missed Match!", { duration: 1500 });
+        } else {
+          toast.info("Correct: No match there.", { duration: 1500 });
+        }
       }
+      // Add similar logic here for audio/dual practice modes if they are introduced
     }
 
     setIsWaitingForResponse(false);
@@ -454,9 +465,11 @@ const GameInterface = ({
     currentTrial,
     visualResponseMadeThisTrial,
     audioResponseMadeThisTrial,
-    isPracticeMode, // Added
-    visualMatches, // Added for practice feedback
-    userVisualResponses // Added for practice feedback
+    isPracticeMode,
+    visualMatches,
+    userVisualResponses,
+    audioMatches, // Added for future-proofing if practice mode changes
+    userAudioResponses // Added for future-proofing
   ]);
 
   // Effect to end session when all trials are completed
@@ -535,6 +548,16 @@ const GameInterface = ({
     setCurrentLetter('');
     setIsWaitingForResponse(false);
   };
+
+  // Early return for practice mode initialization to prevent setup screen flash
+  if (isPracticeMode && gameState === 'setup') {
+    // The useEffect for auto-starting will change gameState to 'playing'
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <p className="text-xl font-semibold text-gray-700 animate-pulse">Loading practice round...</p>
+      </div>
+    );
+  }
 
   if (gameState === 'setup') {
     return (
@@ -683,6 +706,15 @@ const GameInterface = ({
                     <div>• Mode: {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
                   </div>
                 </div>
+
+                {!isPracticeMode && ( // Conditionally render AdaptiveDifficultyToggle
+                  <div className="pt-4">
+                    <AdaptiveDifficultyToggle />
+                    <p className="text-xs text-gray-500 mt-1 pl-1">
+                      N-Level adjusts based on your performance.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
