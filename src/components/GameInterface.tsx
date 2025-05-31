@@ -546,6 +546,9 @@ const GameInterface = ({
   };
 
   if (gameState === 'setup') {
+    if (isPracticeMode) {
+      return null; 
+    }
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
         <div className="container mx-auto max-w-4xl">
