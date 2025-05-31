@@ -1,14 +1,15 @@
 
 import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import storageService from '@/services/storage'; // Import storage service
+import { Button } from "@/shared/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
 import { Brain, Zap, Target, BarChart3, Clock, Users } from "lucide-react";
-import GameInterface from "@/components/GameInterface";
-import Tutorial from "@/components/Tutorial";
-import PerformanceStats from "@/components/PerformanceStats";
-import { HighContrastToggle } from '@/components/ui/HighContrastToggle';
-import { FontSizeSelector } from '@/components/ui/FontSizeSelector';
+import GameInterface from "@/features/game/components/GameInterface";
+import Tutorial from "@/features/tutorial/components/Tutorial";
+import PerformanceStats from "@/features/stats/components/PerformanceStats";
+import { HighContrastToggle } from '@/shared/components/ui/HighContrastToggle';
+import { FontSizeSelector } from '@/shared/components/ui/FontSizeSelector';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'landing' | 'tutorial' | 'practice' | 'game' | 'stats'>('landing');
@@ -58,7 +59,7 @@ const Index = () => {
     return <Tutorial
       onComplete={() => {
         // Tutorial now leads to practice mode first
-        localStorage.setItem('tutorialCompleted', 'true'); // Still mark tutorial as done
+        storageService.setItem('tutorialCompleted', 'true'); // Still mark tutorial as done
         setCurrentView('practice');
       }}
       onBack={() => setCurrentView('landing')}
@@ -107,7 +108,7 @@ const Index = () => {
               size="lg" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               onClick={() => {
-                const tutorialCompleted = localStorage.getItem('tutorialCompleted');
+                const tutorialCompleted = storageService.getItem('tutorialCompleted');
                 if (tutorialCompleted === 'true') {
                   setCurrentView('game'); // Go directly to game if tutorial was completed
                 } else {
