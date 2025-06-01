@@ -81,32 +81,48 @@ export const useTrialManagement = ({
   }, [numTrials]);
 
   const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode && visualMatches) {
-      const visualLength = visualMatches.length || 0;
-      const audioLength = audioMatches?.length || 0;
-      const maxTrials = Math.max(visualLength, audioLength);
+    if (isPracticeMode) {
+      let matchExpectedThisTrial = false;
+      // Determine if a match was expected based on the game mode
+      if (gameMode === "single-visual") {
+        if (currentTrial < visualMatches.length && visualMatches[currentTrial]) {
+          matchExpectedThisTrial = true;
+        }
+      } else if (gameMode === "single-audio") {
+        if (currentTrial < audioMatches.length && audioMatches[currentTrial]) {
+          matchExpectedThisTrial = true;
+        }
+      } else if (gameMode === "dual") {
+        const visualMatchExpected =
+          currentTrial < visualMatches.length && visualMatches[currentTrial];
+        const audioMatchExpected = currentTrial < audioMatches.length && audioMatches[currentTrial];
+        if (visualMatchExpected || audioMatchExpected) {
+          matchExpectedThisTrial = true;
+        }
+      }
 
-      if (currentTrial < maxTrials) {
-        // Check for matches based on game mode
-        let hasMatch = false;
+      // Show toast notification
+      if (matchExpectedThisTrial) {
+        toast.error("Missed Match!", { duration: 1500 });
+      } else {
+        // Only show "Correct: No match there" if the trial is within bounds for the active game mode
+        const isVisualRelevant = gameMode === "single-visual" || gameMode === "dual";
+        const isAudioRelevant = gameMode === "single-audio" || gameMode === "dual";
+        const isTrialInVisualBounds = isVisualRelevant && currentTrial < visualMatches.length;
+        const isTrialInAudioBounds = isAudioRelevant && currentTrial < audioMatches.length;
 
-        if (gameMode === "single-visual" || gameMode === "dual") {
-          const visualExpected = visualMatches[currentTrial];
-          if (visualExpected) {
-            hasMatch = true;
-          }
+        let canShowNoMatchToast = false;
+        if (gameMode === "single-visual") {
+          canShowNoMatchToast = isTrialInVisualBounds;
+        } else if (gameMode === "single-audio") {
+          canShowNoMatchToast = isTrialInAudioBounds;
+        } else if (gameMode === "dual") {
+          // In dual mode, "no match" means neither visual nor audio had a match.
+          // We also need to ensure we are within the bounds of at least one of them.
+          canShowNoMatchToast = isTrialInVisualBounds || isTrialInAudioBounds;
         }
 
-        if ((gameMode === "single-audio" || gameMode === "dual") && audioMatches) {
-          const audioExpected = audioMatches[currentTrial];
-          if (audioExpected) {
-            hasMatch = true;
-          }
-        }
-
-        if (hasMatch) {
-          toast.error("Missed Match!", { duration: 1500 });
-        } else {
+        if (canShowNoMatchToast) {
           toast.info("Correct: No match there.", { duration: 1500 });
         }
       }

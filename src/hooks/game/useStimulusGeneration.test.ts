@@ -27,12 +27,15 @@ describe("useStimulusGeneration Hook", () => {
     vi.stubGlobal("speechSynthesis", mockSpeechSynthesis);
 
     // Mock SpeechSynthesisUtterance
-    vi.stubGlobal("SpeechSynthesisUtterance", vi.fn().mockImplementation((text) => ({
-      text,
-      rate: 1.0,
-      pitch: 1.0,
-      volume: 1.0,
-    })));
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      vi.fn().mockImplementation((text) => ({
+        text,
+        rate: 1.0,
+        pitch: 1.0,
+        volume: 1.0,
+      }))
+    );
   });
 
   afterEach(() => {
@@ -83,7 +86,7 @@ describe("useStimulusGeneration Hook", () => {
     const propsN1: StimulusGenerationHookProps = { ...defaultProps, nLevel: 1 };
     const { result } = renderHook(() => useStimulusGeneration(propsN1));
 
-    const mockRandom = vi.spyOn(Math, 'random');
+    const mockRandom = vi.spyOn(Math, "random");
     mockRandom
       .mockReturnValueOnce(0.5) // Trial 1: pos 4 (9*0.5=4.5->4)
       .mockReturnValueOnce(0.5) // Trial 1: letter B (12*0.5=6->idx 6)
@@ -127,7 +130,7 @@ describe("useStimulusGeneration Hook", () => {
     };
     const { result } = renderHook(() => useStimulusGeneration(propsN1));
 
-    const mockRandom = vi.spyOn(Math, 'random');
+    const mockRandom = vi.spyOn(Math, "random");
     mockRandom
       .mockReturnValueOnce(0.3) // Trial 1: pos 2 (9*0.3=2.7->2)
       .mockReturnValueOnce(0.3) // Trial 1: letter 'X' (2*0.3=0.6 -> idx 0)
