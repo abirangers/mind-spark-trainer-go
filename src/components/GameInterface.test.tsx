@@ -57,10 +57,13 @@ import type {
 } from "@/types/hooks";
 
 // Helper to create a typed mock function
-const mockFn = <T extends (...args: new (...args: any[]) => any) | ((...args: any[]) => any>>(fn?: T): Mock<Parameters<T>, ReturnType<T>> => {
+const mockFn = <
+  T extends (new (...args: unknown[]) => unknown) | ((...args: unknown[]) => unknown)
+>(
+  fn?: T
+): Mock<Parameters<T>, ReturnType<T>> => {
   return vi.fn(fn) as Mock<Parameters<T>, ReturnType<T>>;
 };
-
 
 describe("GameInterface Component - Top-Level Integration", () => {
   const mockOnBack = mockFn();
@@ -102,7 +105,7 @@ describe("GameInterface Component - Top-Level Integration", () => {
       resetGame: mockFn<() => void>(() => {
         currentGameState = "setup";
       }),
-      endSession: mockFn<UseGameLogicReturn['endSession']>(() => {
+      endSession: mockFn<UseGameLogicReturn["endSession"]>(() => {
         currentGameState = "results";
       }),
       PRACTICE_MODE: "single-visual",
@@ -123,31 +126,31 @@ describe("GameInterface Component - Top-Level Integration", () => {
       audioSequence: [],
       visualMatches: [],
       audioMatches: [],
-      generateStimulus: mockFn<UseStimulusGenerationReturn['generateStimulus']>(() => ({
+      generateStimulus: mockFn<UseStimulusGenerationReturn["generateStimulus"]>(() => ({
         newPosition: 0,
         newLetter: "A",
         visualMatch: false,
         audioMatch: false,
       })),
-      playAudioLetter: mockFn<UseStimulusGenerationReturn['playAudioLetter']>(),
-      resetStimulusSequences: mockFn<UseStimulusGenerationReturn['resetStimulusSequences']>(),
-      cancelCurrentSpeech: mockFn<UseStimulusGenerationReturn['cancelCurrentSpeech']>(),
+      playAudioLetter: mockFn<UseStimulusGenerationReturn["playAudioLetter"]>(),
+      resetStimulusSequences: mockFn<UseStimulusGenerationReturn["resetStimulusSequences"]>(),
+      cancelCurrentSpeech: mockFn<UseStimulusGenerationReturn["cancelCurrentSpeech"]>(),
     };
     (useStimulusGeneration as Mock).mockReturnValue(mockStimulusGenerationValues);
 
     mockTrialManagementValues = {
       currentTrial: 0,
       stimulusDurationMs: 3000,
-      setStimulusDurationMs: mockFn<UseTrialManagementReturn['setStimulusDurationMs']>(),
+      setStimulusDurationMs: mockFn<UseTrialManagementReturn["setStimulusDurationMs"]>(),
       currentPosition: null,
       currentLetter: "",
       isWaitingForResponse: false,
       userVisualResponses: [],
       userAudioResponses: [],
       responseTimes: [],
-      handleResponse: mockFn<UseTrialManagementReturn['handleResponse']>(),
-      initiateFirstTrial: mockFn<UseTrialManagementReturn['initiateFirstTrial']>(),
-      resetTrialStates: mockFn<UseTrialManagementReturn['resetTrialStates']>(),
+      handleResponse: mockFn<UseTrialManagementReturn["handleResponse"]>(),
+      initiateFirstTrial: mockFn<UseTrialManagementReturn["initiateFirstTrial"]>(),
+      resetTrialStates: mockFn<UseTrialManagementReturn["resetTrialStates"]>(),
       visualResponseMadeThisTrial: false,
       audioResponseMadeThisTrial: false,
     };
@@ -199,7 +202,7 @@ describe("GameInterface Component - Top-Level Integration", () => {
       // In the test, we can directly trigger the state change as if endSession was called and did its job.
       (useGameLogic as Mock).mockImplementation(() => ({
         ...mockGameLogicValues,
-      gameState: "results" as GameState,
+        gameState: "results" as GameState,
       }));
     });
 

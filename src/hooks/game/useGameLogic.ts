@@ -86,115 +86,140 @@ export const useGameLogic = ({
     (state) => state.isAdaptiveDifficultyEnabled
   );
 
-  const endSession = useCallback((resultsData: EndSessionResultsData) => {
-    if (isPracticeMode) {
-      toast.success("Practice Complete! Well done!", { duration: 3000 });
-      if (onPracticeComplete) {
-        onPracticeComplete();
+  const endSession = useCallback(
+    (resultsData: EndSessionResultsData) => {
+      if (isPracticeMode) {
+        toast.success("Practice Complete! Well done!", { duration: 3000 });
+        if (onPracticeComplete) {
+          onPracticeComplete();
+        }
+        setGameState("setup"); // Reset to setup after practice completion
+        return;
       }
-      setGameState("setup"); // Reset to setup after practice completion
-      return;
-    }
 
-    setGameState("results");
+      setGameState("results");
 
-    let visualCorrect = 0;
-    let audioCorrect = 0;
-    let actualVisualMatches = 0;
-    let visualHits = 0;
-    let visualMisses = 0;
-    let visualFalseAlarms = 0;
-    let visualCorrectRejections = 0;
-    let actualAudioMatches = 0;
-    let audioHits = 0;
-    let audioMisses = 0;
-    let audioFalseAlarms = 0;
-    let audioCorrectRejections = 0;
+      let visualCorrect = 0;
+      let audioCorrect = 0;
+      let actualVisualMatches = 0;
+      let visualHits = 0;
+      let visualMisses = 0;
+      let visualFalseAlarms = 0;
+      let visualCorrectRejections = 0;
+      let actualAudioMatches = 0;
+      let audioHits = 0;
+      let audioMisses = 0;
+      let audioFalseAlarms = 0;
+      let audioCorrectRejections = 0;
 
-    const currentNumTrials = numTrials;
+      const currentNumTrials = numTrials;
 
-    for (let i = 0; i < currentNumTrials; i++) {
-      const visualExpected = resultsData.visualMatches[i] === undefined ? false : resultsData.visualMatches[i];
-      const audioExpected = resultsData.audioMatches[i] === undefined ? false : resultsData.audioMatches[i];
-      const visualResponse = resultsData.userVisualResponses[i] === undefined ? false : resultsData.userVisualResponses[i];
-      const audioResponse = resultsData.userAudioResponses[i] === undefined ? false : resultsData.userAudioResponses[i];
+      for (let i = 0; i < currentNumTrials; i++) {
+        const visualExpected =
+          resultsData.visualMatches[i] === undefined ? false : resultsData.visualMatches[i];
+        const audioExpected =
+          resultsData.audioMatches[i] === undefined ? false : resultsData.audioMatches[i];
+        const visualResponse =
+          resultsData.userVisualResponses[i] === undefined
+            ? false
+            : resultsData.userVisualResponses[i];
+        const audioResponse =
+          resultsData.userAudioResponses[i] === undefined
+            ? false
+            : resultsData.userAudioResponses[i];
 
-      if (gameMode === "single-visual" || gameMode === "dual") {
-        if (visualExpected) actualVisualMatches++;
-        if (visualExpected && visualResponse) visualHits++;
-        else if (visualExpected && !visualResponse) visualMisses++;
-        else if (!visualExpected && visualResponse) visualFalseAlarms++;
-        else if (!visualExpected && !visualResponse) visualCorrectRejections++;
+        if (gameMode === "single-visual" || gameMode === "dual") {
+          if (visualExpected) actualVisualMatches++;
+          if (visualExpected && visualResponse) visualHits++;
+          else if (visualExpected && !visualResponse) visualMisses++;
+          else if (!visualExpected && visualResponse) visualFalseAlarms++;
+          else if (!visualExpected && !visualResponse) visualCorrectRejections++;
+        }
+        if (gameMode === "single-audio" || gameMode === "dual") {
+          if (audioExpected) actualAudioMatches++;
+          if (audioExpected && audioResponse) audioHits++;
+          else if (audioExpected && !audioResponse) audioMisses++;
+          else if (!audioExpected && audioResponse) audioFalseAlarms++;
+          else if (!audioExpected && !audioResponse) audioCorrectRejections++;
+        }
+        if (visualExpected === visualResponse) visualCorrect++;
+        if (audioExpected === audioResponse) audioCorrect++;
       }
-      if (gameMode === "single-audio" || gameMode === "dual") {
-        if (audioExpected) actualAudioMatches++;
-        if (audioExpected && audioResponse) audioHits++;
-        else if (audioExpected && !audioResponse) audioMisses++;
-        else if (!audioExpected && audioResponse) audioFalseAlarms++;
-        else if (!audioExpected && !audioResponse) audioCorrectRejections++;
-      }
-      if (visualExpected === visualResponse) visualCorrect++;
-      if (audioExpected === audioResponse) audioCorrect++;
-    }
 
-    const visualAccuracy = currentNumTrials > 0 ? (visualCorrect / currentNumTrials) * 100 : 0;
-    const audioAccuracy = currentNumTrials > 0 ? (audioCorrect / currentNumTrials) * 100 : 0;
+      const visualAccuracy = currentNumTrials > 0 ? (visualCorrect / currentNumTrials) * 100 : 0;
+      const audioAccuracy = currentNumTrials > 0 ? (audioCorrect / currentNumTrials) * 100 : 0;
 
-    let overallAccuracy = 0;
-    if (gameMode === "dual") {
-      overallAccuracy = (visualAccuracy + audioAccuracy) / 2;
-    } else if (gameMode === "single-visual") {
-      overallAccuracy = visualAccuracy;
-    } else {
-      overallAccuracy = audioAccuracy;
-    }
-
-    const avgResponseTime =
-      resultsData.responseTimes.length > 0
-        ? resultsData.responseTimes.reduce((a, b) => a + b, 0) / resultsData.responseTimes.length
-        : 0;
-
-    const session: GameSession = {
-      trials: currentNumTrials,
-      nLevel,
-      accuracy: overallAccuracy,
-      visualAccuracy,
-      audioAccuracy,
-      averageResponseTime: avgResponseTime || 0,
-      mode: gameMode,
-      timestamp: new Date().toISOString(),
-      actualVisualMatches, visualHits, visualMisses, visualFalseAlarms, visualCorrectRejections,
-      actualAudioMatches, audioHits, audioMisses, audioFalseAlarms, audioCorrectRejections,
-    };
-
-    const sessions = JSON.parse(localStorage.getItem("nback-sessions") || "[]");
-    sessions.push(session);
-    localStorage.setItem("nback-sessions", JSON.stringify(sessions));
-    toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
-
-    if (isAdaptiveDifficultyEnabled && !isPracticeMode) {
-      let nextNLevel = nLevel;
-      let adaptiveMessage = "";
-      if (overallAccuracy >= 80 && nLevel < 8) {
-        nextNLevel = nLevel + 1;
-        adaptiveMessage = `Congratulations! N-Level increased to ${nextNLevel}!`;
-      } else if (overallAccuracy < 60 && nLevel > 1) {
-        nextNLevel = nLevel - 1;
-        adaptiveMessage = `N-Level decreased to ${nextNLevel}. Keep practicing!`;
-      } else if (overallAccuracy >= 80 && nLevel === 8) {
-        adaptiveMessage = `You're at the max N-Level (${nLevel}) and performing excellently!`;
-      } else if (overallAccuracy < 60 && nLevel === 1) {
-        adaptiveMessage = `N-Level remains at ${nLevel}. Keep it up!`;
+      let overallAccuracy = 0;
+      if (gameMode === "dual") {
+        overallAccuracy = (visualAccuracy + audioAccuracy) / 2;
+      } else if (gameMode === "single-visual") {
+        overallAccuracy = visualAccuracy;
       } else {
-        adaptiveMessage = `N-Level maintained at ${nLevel}. Good effort!`;
+        overallAccuracy = audioAccuracy;
       }
-      if (nextNLevel !== nLevel) setNLevel(nextNLevel);
-      if (adaptiveMessage) toast(adaptiveMessage, { duration: 4000 });
-    }
-  }, [
-    isPracticeMode, onPracticeComplete, numTrials, nLevel, gameMode,
-    isAdaptiveDifficultyEnabled, setNLevel, setGameState // Removed resultsData arrays from deps
-  ]);
+
+      const avgResponseTime =
+        resultsData.responseTimes.length > 0
+          ? resultsData.responseTimes.reduce((a, b) => a + b, 0) / resultsData.responseTimes.length
+          : 0;
+
+      const session: GameSession = {
+        trials: currentNumTrials,
+        nLevel,
+        accuracy: overallAccuracy,
+        visualAccuracy,
+        audioAccuracy,
+        averageResponseTime: avgResponseTime || 0,
+        mode: gameMode,
+        timestamp: new Date().toISOString(),
+        actualVisualMatches,
+        visualHits,
+        visualMisses,
+        visualFalseAlarms,
+        visualCorrectRejections,
+        actualAudioMatches,
+        audioHits,
+        audioMisses,
+        audioFalseAlarms,
+        audioCorrectRejections,
+      };
+
+      const sessions = JSON.parse(localStorage.getItem("nback-sessions") || "[]");
+      sessions.push(session);
+      localStorage.setItem("nback-sessions", JSON.stringify(sessions));
+      toast.success(`Session Complete! ${overallAccuracy.toFixed(1)}% accuracy`);
+
+      if (isAdaptiveDifficultyEnabled && !isPracticeMode) {
+        let nextNLevel = nLevel;
+        let adaptiveMessage = "";
+        if (overallAccuracy >= 80 && nLevel < 8) {
+          nextNLevel = nLevel + 1;
+          adaptiveMessage = `Congratulations! N-Level increased to ${nextNLevel}!`;
+        } else if (overallAccuracy < 60 && nLevel > 1) {
+          nextNLevel = nLevel - 1;
+          adaptiveMessage = `N-Level decreased to ${nextNLevel}. Keep practicing!`;
+        } else if (overallAccuracy >= 80 && nLevel === 8) {
+          adaptiveMessage = `You're at the max N-Level (${nLevel}) and performing excellently!`;
+        } else if (overallAccuracy < 60 && nLevel === 1) {
+          adaptiveMessage = `N-Level remains at ${nLevel}. Keep it up!`;
+        } else {
+          adaptiveMessage = `N-Level maintained at ${nLevel}. Good effort!`;
+        }
+        if (nextNLevel !== nLevel) setNLevel(nextNLevel);
+        if (adaptiveMessage) toast(adaptiveMessage, { duration: 4000 });
+      }
+    },
+    [
+      isPracticeMode,
+      onPracticeComplete,
+      numTrials,
+      nLevel,
+      gameMode,
+      isAdaptiveDifficultyEnabled,
+      setNLevel,
+      setGameState, // Removed resultsData arrays from deps
+    ]
+  );
 
   const startGame = useCallback(() => {
     setGameState("playing");

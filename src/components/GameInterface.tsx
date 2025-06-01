@@ -9,7 +9,6 @@ import { useState, useEffect, useCallback } from "react"; // Added useCallback
 // Based on the new render logic using subcomponents, these direct imports for Card, Badge, Progress, AdaptiveDifficultyToggle
 // are likely NO LONGER NEEDED here. I will remove them based on the new JSX structure.
 
-
 import { useStimulusGeneration } from "@/hooks/game/useStimulusGeneration";
 import { useGameLogic, GameMode, GameSession } from "@/hooks/game/useGameLogic"; // Assuming types are exported
 import { useTrialManagement } from "@/hooks/game/useTrialManagement";
@@ -19,11 +18,11 @@ import { GameSetupScreen } from "./game/GameSetupScreen";
 import { PlayingScreen } from "./game/PlayingScreen";
 import { ResultsScreen } from "./game/ResultsScreen";
 
-
 /**
  * Props for the GameInterface component.
  */
-export interface GameInterfaceProps { // Exporting for potential external use or testing
+export interface GameInterfaceProps {
+  // Exporting for potential external use or testing
   onBack: () => void;
   onViewStats: () => void;
   isPracticeMode?: boolean;
@@ -92,10 +91,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     resetGame,
   } = gameLogic;
 
-  const {
-    resetStimulusSequences,
-    cancelCurrentSpeech,
-  } = stimulusG;
+  const { resetStimulusSequences, cancelCurrentSpeech } = stimulusG;
 
   const {
     currentTrial,
@@ -117,9 +113,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
       resetStimulusSequences();
       initiateFirstTrial();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, initiateFirstTrial, resetStimulusSequences]); // Dependencies on functions from hooks
-
 
   const handleResetGame = useCallback(() => {
     resetGame();
@@ -183,14 +177,15 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   let lastSessionData: GameSession | null = null;
   if (gameState === "results") {
-    const sessionsString = typeof window !== "undefined" ? localStorage.getItem("nback-sessions") : "[]";
+    const sessionsString =
+      typeof window !== "undefined" ? localStorage.getItem("nback-sessions") : "[]";
     try {
-        const sessions = JSON.parse(sessionsString || "[]") as GameSession[];
-        if (sessions.length > 0) {
-            lastSessionData = sessions[sessions.length - 1];
-        }
+      const sessions = JSON.parse(sessionsString || "[]") as GameSession[];
+      if (sessions.length > 0) {
+        lastSessionData = sessions[sessions.length - 1];
+      }
     } catch (e) {
-        console.error("Error reading/parsing sessions from localStorage for ResultsScreen:", e);
+      console.error("Error reading/parsing sessions from localStorage for ResultsScreen:", e);
     }
   }
 

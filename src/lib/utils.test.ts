@@ -9,9 +9,7 @@ describe("cn utility function", () => {
   it("should handle conditional classes", () => {
     const isActive = true;
     const isHidden = false;
-    expect(
-      cn("base", isActive && "active", isHidden && "hidden", null, undefined && "invisible")
-    ).toBe("base active");
+    expect(cn("base", isActive && "active", isHidden && "hidden", null)).toBe("base active");
   });
 
   it("should override classes with tailwind-merge", () => {

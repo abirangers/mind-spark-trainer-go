@@ -42,7 +42,6 @@ interface TrialManagementProps {
  * @returns An object containing trial state, response data, and functions to manage trials.
  */
 export const useTrialManagement = ({
-  nLevel,
   numTrials,
   gameMode,
   stimulusDurationMsInitial,
@@ -220,11 +219,11 @@ export const useTrialManagement = ({
       if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
       setIsWaitingForResponse(false);
       onAllTrialsComplete({
-        visualMatches,      // Prop
-        audioMatches,       // Prop
-        userVisualResponses,// Local state
+        visualMatches, // Prop
+        audioMatches, // Prop
+        userVisualResponses, // Local state
         userAudioResponses, // Local state
-        responseTimes,      // Local state
+        responseTimes, // Local state
       });
     }
   }, [
@@ -235,7 +234,7 @@ export const useTrialManagement = ({
     audioMatches,
     userVisualResponses,
     userAudioResponses,
-    responseTimes
+    responseTimes,
   ]);
 
   useEffect(() => {

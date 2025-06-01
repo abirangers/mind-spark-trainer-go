@@ -2,7 +2,6 @@ import type { GameMode, GameState, GameSession } from "@/hooks/game/useGameLogic
 import type { EndSessionResultsData as GameLogicEndSessionResultsData } from "@/hooks/game/useGameLogic"; // Renaming to avoid conflict
 import type { EndSessionResultsData as TrialManagementEndSessionResultsData } from "@/hooks/game/useTrialManagement"; // Renaming to avoid conflict
 
-
 export interface UseGameLogicReturn {
   gameMode: GameMode;
   setGameMode: React.Dispatch<React.SetStateAction<GameMode>>;

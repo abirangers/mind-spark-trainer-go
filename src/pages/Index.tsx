@@ -13,7 +13,6 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<
     "landing" | "tutorial" | "practice" | "game" | "stats"
   >("landing");
-  const [showQuickStart, setShowQuickStart] = useState(false);
 
   const features = [
     {
