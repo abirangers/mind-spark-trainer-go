@@ -3,6 +3,15 @@ import { toast } from "sonner";
 
 export type GameMode = "single-visual" | "single-audio" | "dual";
 
+// Placeholder for the data structure expected by onAllTrialsComplete (i.e., gameLogic.endSession)
+interface EndSessionResultsData {
+  visualMatches: ReadonlyArray<boolean>;
+  audioMatches: ReadonlyArray<boolean>;
+  userVisualResponses: ReadonlyArray<boolean>;
+  userAudioResponses: ReadonlyArray<boolean>;
+  responseTimes: ReadonlyArray<number>;
+}
+
 /**
  * Props for the useTrialManagement hook.
  */
@@ -12,8 +21,8 @@ interface TrialManagementProps {
   gameMode: GameMode;
   stimulusDurationMsInitial: number;
   isPracticeMode: boolean;
-  // audioEnabled: boolean; // Not directly used here if playAudioLetter is from stimulus hook
   visualMatches: ReadonlyArray<boolean>;
+  audioMatches: ReadonlyArray<boolean>; // Added for endSession data
   generateStimulus: () => {
     newPosition: number;
     newLetter: string;
@@ -21,7 +30,7 @@ interface TrialManagementProps {
     audioMatch: boolean;
   };
   playAudioLetter: (letter: string) => void;
-  onAllTrialsComplete: () => void;
+  onAllTrialsComplete: (resultsData: EndSessionResultsData) => void; // Updated signature
 }
 
 /**
@@ -33,12 +42,13 @@ interface TrialManagementProps {
  * @returns An object containing trial state, response data, and functions to manage trials.
  */
 export const useTrialManagement = ({
-  nLevel, // nLevel is used for context but not directly in most trial logic here
+  nLevel,
   numTrials,
   gameMode,
   stimulusDurationMsInitial,
   isPracticeMode,
   visualMatches,
+  audioMatches, // Destructure new prop
   generateStimulus,
   playAudioLetter,
   onAllTrialsComplete,
@@ -58,7 +68,7 @@ export const useTrialManagement = ({
   const [audioResponseMadeThisTrial, setAudioResponseMadeThisTrial] = useState(false);
 
   const trialTimeoutRef = useRef<NodeJS.Timeout>();
-  const startTrialFnRef = useRef<() => void>(); // Changed name to avoid confusion
+  const startTrialFnRef = useRef<() => void>();
   const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
 
   const advanceTrial = useCallback(() => {
@@ -73,7 +83,6 @@ export const useTrialManagement = ({
 
   const handleTrialTimeout = useCallback(() => {
     if (isPracticeMode && currentTrial < visualMatches.length) {
-      // Ensure visualMatches is populated
       const visualExpected = visualMatches[currentTrial];
       if (visualExpected) {
         toast.error("Missed Match!", { duration: 1500 });
@@ -136,7 +145,6 @@ export const useTrialManagement = ({
 
       if (responseType === "visual") {
         if (!tempVisualResponseMade) {
-          // Only process if not already responded for this type
           setUserVisualResponses((prev) => {
             const newResponses = [...prev];
             if (trialIndexToUpdate < newResponses.length) newResponses[trialIndexToUpdate] = true;
@@ -147,7 +155,6 @@ export const useTrialManagement = ({
         }
       } else {
         if (!tempAudioResponseMade) {
-          // Only process if not already responded for this type
           setUserAudioResponses((prev) => {
             const newResponses = [...prev];
             if (trialIndexToUpdate < newResponses.length) newResponses[trialIndexToUpdate] = true;
@@ -164,7 +171,6 @@ export const useTrialManagement = ({
         visualResponseMadeThisTrial &&
         trialIndexToUpdate < visualMatches.length
       ) {
-        // Feedback only on the first visual response for this trial in practice mode
         const visualExpected = visualMatches[trialIndexToUpdate];
         if (visualExpected) toast.success("Correct Match!", { duration: 1500 });
         else toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
@@ -181,7 +187,6 @@ export const useTrialManagement = ({
 
       if (gameMode === "dual") {
         if (tempVisualResponseMade && tempAudioResponseMade) {
-          // Check using temp local vars for this call
           if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
           postDualResponseDelayRef.current = setTimeout(performTrialAdvancement, 750);
         }
@@ -207,18 +212,31 @@ export const useTrialManagement = ({
     setUserVisualResponses(Array(numTrials).fill(false));
     setUserAudioResponses(Array(numTrials).fill(false));
     setResponseTimes([]);
-    // setCurrentTrial(0); // Resetting currentTrial here could cause issues if numTrials changes mid-session
-    // Better to reset currentTrial when a new game explicitly starts.
-  }, [numTrials]); // Only re-initialize if numTrials itself changes.
+  }, [numTrials]);
 
   useEffect(() => {
     if (currentTrial === numTrials && numTrials > 0) {
       if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
       if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
       setIsWaitingForResponse(false);
-      onAllTrialsComplete();
+      onAllTrialsComplete({
+        visualMatches,      // Prop
+        audioMatches,       // Prop
+        userVisualResponses,// Local state
+        userAudioResponses, // Local state
+        responseTimes,      // Local state
+      });
     }
-  }, [currentTrial, numTrials, onAllTrialsComplete]);
+  }, [
+    currentTrial,
+    numTrials,
+    onAllTrialsComplete,
+    visualMatches,
+    audioMatches,
+    userVisualResponses,
+    userAudioResponses,
+    responseTimes
+  ]);
 
   useEffect(() => {
     return () => {
@@ -241,14 +259,11 @@ export const useTrialManagement = ({
     if (startTrialFnRef.current) {
       setTimeout(() => startTrialFnRef.current?.(), 100);
     }
-  }, [numTrials]); // startSingleTrialExecution (via ref) is not needed as dep if ref itself is stable
+  }, [numTrials]);
 
   const resetTrialStatesAndTimers = useCallback(() => {
-    // Renamed for clarity
     if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
     if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
-    // Don't reset currentTrial to 0 here, that's for starting a new game.
-    // This is more for pausing or stopping current trial processes.
     setCurrentPosition(null);
     setCurrentLetter("");
     setVisualResponseMadeThisTrial(false);
@@ -268,7 +283,7 @@ export const useTrialManagement = ({
     responseTimes,
     handleResponse,
     initiateFirstTrial,
-    resetTrialStates: resetTrialStatesAndTimers, // Expose the renamed clearer function
+    resetTrialStates: resetTrialStatesAndTimers,
     visualResponseMadeThisTrial,
     audioResponseMadeThisTrial,
   };

@@ -27,6 +27,17 @@ export interface GameSession {
 }
 
 /**
+ * Data required by endSession for calculating results.
+ */
+interface EndSessionResultsData {
+  visualMatches: ReadonlyArray<boolean>;
+  audioMatches: ReadonlyArray<boolean>;
+  userVisualResponses: ReadonlyArray<boolean>;
+  userAudioResponses: ReadonlyArray<boolean>;
+  responseTimes: ReadonlyArray<number>;
+}
+
+/**
  * Props for the useGameLogic hook.
  */
 interface GameLogicProps {
@@ -35,18 +46,12 @@ interface GameLogicProps {
   initialNumTrials?: number;
   isPracticeMode?: boolean;
   onPracticeComplete?: () => void;
-  visualMatches: ReadonlyArray<boolean>;
-  audioMatches: ReadonlyArray<boolean>;
-  userVisualResponses: ReadonlyArray<boolean>;
-  userAudioResponses: ReadonlyArray<boolean>;
-  responseTimes: ReadonlyArray<number>;
-  resetStimulusSequences: () => void;
-  // executeTrial: () => void; // This will be called by GameInterface after hook signals readiness or via useEffect
-  currentTrial: number;
-  // setCurrentTrial: (updater: number | ((prev: number) => number)) => void; // Not needed if currentTrial is just for monitoring
+  resetStimulusSequences: () => void; // Called by startGame
+  // Removed: visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, currentTrial
+  // These are now passed directly to endSession or managed by other hooks.
 }
 
-const PRACTICE_MODE_CONST: GameMode = "single-visual"; // Renamed to avoid conflict if exported
+const PRACTICE_MODE_CONST: GameMode = "single-visual";
 const PRACTICE_N_LEVEL_CONST = 1;
 const PRACTICE_NUM_TRIALS_CONST = 7;
 
@@ -64,13 +69,7 @@ export const useGameLogic = ({
   initialNumTrials = 20,
   isPracticeMode = false,
   onPracticeComplete,
-  visualMatches,
-  audioMatches,
-  userVisualResponses,
-  userAudioResponses,
-  responseTimes,
   resetStimulusSequences,
-  currentTrial,
 }: GameLogicProps) => {
   const [gameMode, setGameMode] = useState<GameMode>(
     isPracticeMode ? PRACTICE_MODE_CONST : initialGameMode
@@ -87,13 +86,13 @@ export const useGameLogic = ({
     (state) => state.isAdaptiveDifficultyEnabled
   );
 
-  const endSession = useCallback(() => {
+  const endSession = useCallback((resultsData: EndSessionResultsData) => {
     if (isPracticeMode) {
       toast.success("Practice Complete! Well done!", { duration: 3000 });
       if (onPracticeComplete) {
         onPracticeComplete();
       }
-      // setGameState("setup"); // Or some other terminal state for practice
+      setGameState("setup"); // Reset to setup after practice completion
       return;
     }
 
@@ -112,14 +111,13 @@ export const useGameLogic = ({
     let audioFalseAlarms = 0;
     let audioCorrectRejections = 0;
 
-    // Ensure arrays have the expected length (numTrials)
-    const currentNumTrials = numTrials; // Use a snapshot of numTrials for this calculation
+    const currentNumTrials = numTrials;
 
     for (let i = 0; i < currentNumTrials; i++) {
-      const visualExpected = visualMatches[i] === undefined ? false : visualMatches[i];
-      const audioExpected = audioMatches[i] === undefined ? false : audioMatches[i];
-      const visualResponse = userVisualResponses[i] === undefined ? false : userVisualResponses[i];
-      const audioResponse = userAudioResponses[i] === undefined ? false : userAudioResponses[i];
+      const visualExpected = resultsData.visualMatches[i] === undefined ? false : resultsData.visualMatches[i];
+      const audioExpected = resultsData.audioMatches[i] === undefined ? false : resultsData.audioMatches[i];
+      const visualResponse = resultsData.userVisualResponses[i] === undefined ? false : resultsData.userVisualResponses[i];
+      const audioResponse = resultsData.userAudioResponses[i] === undefined ? false : resultsData.userAudioResponses[i];
 
       if (gameMode === "single-visual" || gameMode === "dual") {
         if (visualExpected) actualVisualMatches++;
@@ -135,8 +133,6 @@ export const useGameLogic = ({
         else if (!audioExpected && audioResponse) audioFalseAlarms++;
         else if (!audioExpected && !audioResponse) audioCorrectRejections++;
       }
-      // This calculation of visualCorrect/audioCorrect might be slightly different from detailed hits.
-      // The original GameInterface used this:
       if (visualExpected === visualResponse) visualCorrect++;
       if (audioExpected === audioResponse) audioCorrect++;
     }
@@ -150,13 +146,12 @@ export const useGameLogic = ({
     } else if (gameMode === "single-visual") {
       overallAccuracy = visualAccuracy;
     } else {
-      // single-audio
       overallAccuracy = audioAccuracy;
     }
 
     const avgResponseTime =
-      responseTimes.length > 0
-        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+      resultsData.responseTimes.length > 0
+        ? resultsData.responseTimes.reduce((a, b) => a + b, 0) / resultsData.responseTimes.length
         : 0;
 
     const session: GameSession = {
@@ -165,19 +160,11 @@ export const useGameLogic = ({
       accuracy: overallAccuracy,
       visualAccuracy,
       audioAccuracy,
-      averageResponseTime: avgResponseTime || 0, // Ensure not NaN
+      averageResponseTime: avgResponseTime || 0,
       mode: gameMode,
       timestamp: new Date().toISOString(),
-      actualVisualMatches,
-      visualHits,
-      visualMisses,
-      visualFalseAlarms,
-      visualCorrectRejections,
-      actualAudioMatches,
-      audioHits,
-      audioMisses,
-      audioFalseAlarms,
-      audioCorrectRejections,
+      actualVisualMatches, visualHits, visualMisses, visualFalseAlarms, visualCorrectRejections,
+      actualAudioMatches, audioHits, audioMisses, audioFalseAlarms, audioCorrectRejections,
     };
 
     const sessions = JSON.parse(localStorage.getItem("nback-sessions") || "[]");
@@ -205,25 +192,13 @@ export const useGameLogic = ({
       if (adaptiveMessage) toast(adaptiveMessage, { duration: 4000 });
     }
   }, [
-    isPracticeMode,
-    onPracticeComplete,
-    numTrials,
-    nLevel,
-    gameMode,
-    visualMatches,
-    audioMatches,
-    userVisualResponses,
-    userAudioResponses,
-    responseTimes,
-    isAdaptiveDifficultyEnabled,
-    setNLevel, // toast is problematic as a dep
+    isPracticeMode, onPracticeComplete, numTrials, nLevel, gameMode,
+    isAdaptiveDifficultyEnabled, setNLevel, setGameState // Removed resultsData arrays from deps
   ]);
 
   const startGame = useCallback(() => {
     setGameState("playing");
     resetStimulusSequences();
-    // The actual first trial is triggered by GameInterface's useEffect watching gameState === 'playing'
-    // and then calling the startTrial function (which will become part of useTrialManagement)
   }, [resetStimulusSequences, setGameState]);
 
   useEffect(() => {
@@ -232,16 +207,11 @@ export const useGameLogic = ({
     }
   }, [isPracticeMode, gameState, startGame]);
 
-  useEffect(() => {
-    if (gameState === "playing" && currentTrial === numTrials && numTrials > 0) {
-      // ensure numTrials > 0
-      endSession();
-    }
-  }, [gameState, currentTrial, numTrials, endSession]);
+  // Removed useEffect that auto-called endSession based on currentTrial prop.
+  // endSession is now called by useTrialManagement via onAllTrialsComplete.
 
   const resetGame = useCallback(() => {
     setGameState("setup");
-    // Other resets (trial timeouts, audio cancellation) are handled by their respective hooks/GameInterface.
   }, [setGameState]);
 
   return {
@@ -255,7 +225,7 @@ export const useGameLogic = ({
     setNumTrials,
     startGame,
     resetGame,
-    // endSession, // Not typically exposed directly, triggered by trial completion.
+    endSession, // Expose endSession
     PRACTICE_MODE: PRACTICE_MODE_CONST,
     PRACTICE_N_LEVEL: PRACTICE_N_LEVEL_CONST,
     PRACTICE_NUM_TRIALS: PRACTICE_NUM_TRIALS_CONST,
