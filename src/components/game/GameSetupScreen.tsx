@@ -22,7 +22,7 @@ interface GameSetupScreenProps {
   isPracticeMode?: boolean;
 }
 
-export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
+const GameSetupScreenComponent: React.FC<GameSetupScreenProps> = ({
   onBack,
   gameMode,
   setGameMode,
@@ -208,3 +208,5 @@ export const GameSetupScreen: React.FC<GameSetupScreenProps> = ({
     </div>
   );
 };
+
+export const GameSetupScreen = React.memo(GameSetupScreenComponent);

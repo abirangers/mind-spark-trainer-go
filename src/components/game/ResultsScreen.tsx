@@ -31,7 +31,7 @@ interface ResultsScreenProps {
   onTrainAgain: () => void;
 }
 
-export const ResultsScreen: React.FC<ResultsScreenProps> = ({
+const ResultsScreenComponent: React.FC<ResultsScreenProps> = ({
   lastSession: initialLastSession,
   onBackToHome,
   onViewStats,
@@ -189,3 +189,5 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
     </div>
   );
 };
+
+export const ResultsScreen = React.memo(ResultsScreenComponent);

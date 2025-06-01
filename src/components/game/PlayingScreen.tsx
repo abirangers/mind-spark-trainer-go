@@ -19,7 +19,7 @@ interface PlayingScreenProps {
   audioResponseMadeThisTrial: boolean;
 }
 
-export const PlayingScreen: React.FC<PlayingScreenProps> = ({
+const PlayingScreenComponent: React.FC<PlayingScreenProps> = ({
   onPauseGame,
   nLevel,
   gameMode,
@@ -127,3 +127,5 @@ export const PlayingScreen: React.FC<PlayingScreenProps> = ({
     </div>
   );
 };
+
+export const PlayingScreen = React.memo(PlayingScreenComponent);
