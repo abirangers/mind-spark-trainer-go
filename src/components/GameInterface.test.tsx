@@ -47,69 +47,75 @@ vi.mock("./game/ResultsScreen", () => ({
   )),
 }));
 
-import { useGameLogic } from "@/hooks/game/useGameLogic";
+import { useGameLogic, GameMode, GameState } from "@/hooks/game/useGameLogic";
 import { useStimulusGeneration } from "@/hooks/game/useStimulusGeneration";
 import { useTrialManagement } from "@/hooks/game/useTrialManagement";
+import type {
+  UseGameLogicReturn,
+  UseStimulusGenerationReturn,
+  UseTrialManagementReturn,
+} from "@/types/hooks";
 
 // Helper to create a typed mock function
-const mockFn = <T extends (...args: any[]) => any>(fn?: T): Mock<Parameters<T>, ReturnType<T>> => {
+const mockFn = <T extends (...args: new (...args: any[]) => any) | ((...args: any[]) => any>>(fn?: T): Mock<Parameters<T>, ReturnType<T>> => {
   return vi.fn(fn) as Mock<Parameters<T>, ReturnType<T>>;
 };
+
 
 describe("GameInterface Component - Top-Level Integration", () => {
   const mockOnBack = mockFn();
   const mockOnViewStats = mockFn();
-  const mockOnPracticeComplete = mockFn();
+  const mockOnPracticeComplete = mockFn<() => void>();
   const user = userEvent.setup();
 
-  let mockGameLogicValues: ReturnType<typeof useGameLogic>;
-  let mockStimulusGenerationValues: ReturnType<typeof useStimulusGeneration>;
-  let mockTrialManagementValues: ReturnType<typeof useTrialManagement>;
+  let mockGameLogicValues: UseGameLogicReturn;
+  let mockStimulusGenerationValues: UseStimulusGenerationReturn;
+  let mockTrialManagementValues: UseTrialManagementReturn;
 
-  const setupDefaultMocks = (initialGameState: string = "setup") => {
+  const setupDefaultMocks = (initialGameState: GameState = "setup") => {
     // Define mutable state for gameLogic mock to simulate state changes
-    let currentGameState = initialGameState;
+    let currentGameState: GameState = initialGameState;
     let currentNLevel = 2;
     let currentNumTrials = 20;
-    let currentGameMode = "single-visual";
+    let currentGameMode: GameMode = "single-visual";
 
     mockGameLogicValues = {
-      gameMode: currentGameMode as any,
-      setGameMode: mockFn((mode) => {
-        currentGameMode = mode;
+      gameMode: currentGameMode,
+      setGameMode: mockFn<React.Dispatch<React.SetStateAction<GameMode>>>((mode) => {
+        currentGameMode = typeof mode === "function" ? mode(currentGameMode) : mode;
       }),
-      gameState: currentGameState as any,
-      setGameState: mockFn((state) => {
-        currentGameState = state;
+      gameState: currentGameState,
+      setGameState: mockFn<React.Dispatch<React.SetStateAction<GameState>>>((state) => {
+        currentGameState = typeof state === "function" ? state(currentGameState) : state;
       }),
       nLevel: currentNLevel,
-      setNLevel: mockFn((updater) => {
+      setNLevel: mockFn<React.Dispatch<React.SetStateAction<number>>>((updater) => {
         currentNLevel = typeof updater === "function" ? updater(currentNLevel) : updater;
       }),
       numTrials: currentNumTrials,
-      setNumTrials: mockFn((updater) => {
+      setNumTrials: mockFn<React.Dispatch<React.SetStateAction<number>>>((updater) => {
         currentNumTrials = typeof updater === "function" ? updater(currentNumTrials) : updater;
       }),
-      startGame: mockFn(() => {
+      startGame: mockFn<() => void>(() => {
         currentGameState = "playing";
       }),
-      resetGame: mockFn(() => {
+      resetGame: mockFn<() => void>(() => {
         currentGameState = "setup";
       }),
-      endSession: mockFn(() => {
+      endSession: mockFn<UseGameLogicReturn['endSession']>(() => {
         currentGameState = "results";
       }),
-      PRACTICE_MODE: "single-visual" as any,
+      PRACTICE_MODE: "single-visual",
       PRACTICE_N_LEVEL: 1,
       PRACTICE_NUM_TRIALS: 7,
     };
 
     (useGameLogic as Mock).mockImplementation(() => ({
       ...mockGameLogicValues,
-      gameState: currentGameState as any, // Ensure it reflects current mock state
+      gameState: currentGameState, // Ensure it reflects current mock state
       nLevel: currentNLevel,
       numTrials: currentNumTrials,
-      gameMode: currentGameMode as any,
+      gameMode: currentGameMode,
     }));
 
     mockStimulusGenerationValues = {
@@ -117,31 +123,31 @@ describe("GameInterface Component - Top-Level Integration", () => {
       audioSequence: [],
       visualMatches: [],
       audioMatches: [],
-      generateStimulus: mockFn(() => ({
+      generateStimulus: mockFn<UseStimulusGenerationReturn['generateStimulus']>(() => ({
         newPosition: 0,
         newLetter: "A",
         visualMatch: false,
         audioMatch: false,
       })),
-      playAudioLetter: mockFn(),
-      resetStimulusSequences: mockFn(),
-      cancelCurrentSpeech: mockFn(),
+      playAudioLetter: mockFn<UseStimulusGenerationReturn['playAudioLetter']>(),
+      resetStimulusSequences: mockFn<UseStimulusGenerationReturn['resetStimulusSequences']>(),
+      cancelCurrentSpeech: mockFn<UseStimulusGenerationReturn['cancelCurrentSpeech']>(),
     };
     (useStimulusGeneration as Mock).mockReturnValue(mockStimulusGenerationValues);
 
     mockTrialManagementValues = {
       currentTrial: 0,
       stimulusDurationMs: 3000,
-      setStimulusDurationMs: mockFn(),
+      setStimulusDurationMs: mockFn<UseTrialManagementReturn['setStimulusDurationMs']>(),
       currentPosition: null,
       currentLetter: "",
       isWaitingForResponse: false,
       userVisualResponses: [],
       userAudioResponses: [],
       responseTimes: [],
-      handleResponse: mockFn(),
-      initiateFirstTrial: mockFn(),
-      resetTrialStates: mockFn(),
+      handleResponse: mockFn<UseTrialManagementReturn['handleResponse']>(),
+      initiateFirstTrial: mockFn<UseTrialManagementReturn['initiateFirstTrial']>(),
+      resetTrialStates: mockFn<UseTrialManagementReturn['resetTrialStates']>(),
       visualResponseMadeThisTrial: false,
       audioResponseMadeThisTrial: false,
     };
@@ -193,7 +199,7 @@ describe("GameInterface Component - Top-Level Integration", () => {
       // In the test, we can directly trigger the state change as if endSession was called and did its job.
       (useGameLogic as Mock).mockImplementation(() => ({
         ...mockGameLogicValues,
-        gameState: "results",
+      gameState: "results" as GameState,
       }));
     });
 
@@ -233,8 +239,8 @@ describe("GameInterface Component - Top-Level Integration", () => {
     // Ensure gameMode allows visual/audio responses
     (useGameLogic as Mock).mockImplementation(() => ({
       ...mockGameLogicValues,
-      gameState: "playing",
-      gameMode: "dual" as any,
+      gameState: "playing" as GameState,
+      gameMode: "dual" as GameMode,
     }));
 
     render(<GameInterface {...defaultGameInterfaceProps} />);
@@ -265,7 +271,7 @@ describe("GameInterface Component - Top-Level Integration", () => {
       }
       return {
         ...mockGameLogicValues,
-        gameState: initialGameState as any,
+        gameState: initialGameState as GameState,
       };
     });
 

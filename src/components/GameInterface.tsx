@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react"; // Added useCallback
 // Imports for Button, toast, useSettingsStore are fine from user's provided code
-import { Button } from "@/components/ui/button";
 // Assuming lucide-react icons are still needed by the direct JSX in this file (e.g. for setup screen buttons if not fully passed to subcomp)
-import { ArrowLeft, Play, Volume2, VolumeX, Pause, BarChart3 } from "lucide-react";
 // UI components used directly in GameInterface's JSX for screens
 // These will be removed if the sub-components fully encapsulate them.
 // For now, assuming they might be used by GameInterface if the render logic isn't fully replaced by subcomponents yet.
@@ -12,9 +10,8 @@ import { ArrowLeft, Play, Volume2, VolumeX, Pause, BarChart3 } from "lucide-reac
 // are likely NO LONGER NEEDED here. I will remove them based on the new JSX structure.
 
 
-import { useSettingsStore } from "@/stores/settingsStore";
 import { useStimulusGeneration } from "@/hooks/game/useStimulusGeneration";
-import { useGameLogic, GameMode, GameState, GameSession } from "@/hooks/game/useGameLogic"; // Assuming types are exported
+import { useGameLogic, GameMode, GameSession } from "@/hooks/game/useGameLogic"; // Assuming types are exported
 import { useTrialManagement } from "@/hooks/game/useTrialManagement";
 
 // Screen sub-components

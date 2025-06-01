@@ -12,8 +12,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
 
 interface PerformanceStatsProps {
@@ -45,8 +43,6 @@ interface GameSession {
 }
 
 const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) => {
-  const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("all");
-
   // Get sessions from localStorage or generate demo data
   const sessions: GameSession[] = useMemo(() => {
     const stored = localStorage.getItem("nback-sessions");
@@ -295,7 +291,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                       <XAxis dataKey="session" />
                       <YAxis domain={[0, 100]} />
                       <Tooltip
-                        formatter={(value: any) => [`${value}%`, "Accuracy"]}
+                        formatter={(value: number) => [`${value}%`, "Accuracy"]}
                         labelFormatter={(label) => `Session ${label}`}
                       />
                       <Line
@@ -325,7 +321,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                       <XAxis dataKey="session" />
                       <YAxis domain={[1, 8]} />
                       <Tooltip
-                        formatter={(value: any) => [`${value}-Back`, "N-Level"]}
+                        formatter={(value: number) => [`${value}-Back`, "N-Level"]}
                         labelFormatter={(label) => `Session ${label}`}
                       />
                       <Line
@@ -356,7 +352,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                     <XAxis dataKey="session" />
                     <YAxis />
                     <Tooltip
-                      formatter={(value: any) => [`${value}ms`, "Response Time"]}
+                      formatter={(value: number) => [`${value}ms`, "Response Time"]}
                       labelFormatter={(label) => `Session ${label}`}
                     />
                     <Line
