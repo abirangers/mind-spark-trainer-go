@@ -6,6 +6,9 @@ import { ArrowLeft, Play, Volume2, VolumeX } from "lucide-react";
 import { AdaptiveDifficultyToggle } from "@/components/ui/AdaptiveDifficultyToggle";
 export type GameMode = "single-visual" | "single-audio" | "dual";
 
+/**
+ * Props for the GameSetupScreen component.
+ */
 interface GameSetupScreenProps {
   onBack: () => void;
   gameMode: GameMode;
@@ -22,6 +25,13 @@ interface GameSetupScreenProps {
   isPracticeMode?: boolean;
 }
 
+/**
+ * Component for the game setup screen.
+ * Allows users to configure game mode, N-level, number of trials, stimulus duration, and audio settings.
+ *
+ * @param {GameSetupScreenProps} props - Props for configuring and interacting with the setup screen.
+ * @returns JSX.Element | null - The setup screen UI, or null if in practice mode (which auto-starts).
+ */
 const GameSetupScreenComponent: React.FC<GameSetupScreenProps> = ({
   onBack,
   gameMode,

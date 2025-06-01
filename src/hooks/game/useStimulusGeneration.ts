@@ -1,11 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 
+/**
+ * Props for the useStimulusGeneration hook.
+ */
 export interface StimulusGenerationHookProps {
   nLevel: number;
   audioEnabled: boolean;
   letters?: string[];
 }
 
+/**
+ * Custom hook for managing the generation and presentation of visual and audio stimuli.
+ * It handles creating sequences, tracking N-back matches, and interfacing with speech synthesis.
+ *
+ * @param {StimulusGenerationHookProps} props - Properties to configure stimulus generation.
+ * @returns An object containing stimulus sequences, match data, and functions to control stimuli.
+ */
 export const useStimulusGeneration = ({
   nLevel,
   audioEnabled,

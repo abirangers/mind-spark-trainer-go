@@ -9,6 +9,9 @@ import { GameSetupScreen } from "./game/GameSetupScreen";
 import { PlayingScreen } from "./game/PlayingScreen";
 import { ResultsScreen } from "./game/ResultsScreen";
 
+/**
+ * Props for the GameInterface component.
+ */
 interface GameInterfaceProps {
   onBack: () => void;
   onViewStats: () => void;
@@ -47,6 +50,14 @@ const PRACTICE_MODE = "single-visual" as GameMode;
 const PRACTICE_N_LEVEL = 1; // 1-Back for practice
 const PRACTICE_NUM_TRIALS = 7; // Short session
 
+/**
+ * Main component orchestrating the N-Back game.
+ * It manages game state transitions and renders different screens (Setup, Playing, Results)
+ * based on the current state, utilizing custom hooks for logic and state management.
+ *
+ * @param {GameInterfaceProps} props - Properties to configure the game interface.
+ * @returns JSX.Element | null - The rendered game screen or null during state transitions or practice auto-start.
+ */
 const GameInterface = ({
   onBack,
   onViewStats,

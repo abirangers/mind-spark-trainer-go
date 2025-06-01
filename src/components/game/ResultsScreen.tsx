@@ -24,6 +24,9 @@ export interface GameSession {
   audioCorrectRejections?: number;
 }
 
+/**
+ * Props for the ResultsScreen component.
+ */
 interface ResultsScreenProps {
   lastSession: GameSession | null;
   onBackToHome: () => void;
@@ -31,6 +34,14 @@ interface ResultsScreenProps {
   onTrainAgain: () => void;
 }
 
+/**
+ * Component for displaying the results of a completed game session.
+ * Shows overall accuracy, average response time, N-level, and detailed performance stats.
+ * Provides options to train again, view all stats, or go back home.
+ *
+ * @param {ResultsScreenProps} props - Props containing the last session data and navigation callbacks.
+ * @returns JSX.Element - The results screen UI.
+ */
 const ResultsScreenComponent: React.FC<ResultsScreenProps> = ({
   lastSession: initialLastSession,
   onBackToHome,

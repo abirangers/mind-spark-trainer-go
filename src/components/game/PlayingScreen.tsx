@@ -5,6 +5,9 @@ import { Progress } from "@/components/ui/progress";
 import { Pause } from "lucide-react";
 export type GameMode = "single-visual" | "single-audio" | "dual";
 
+/**
+ * Props for the PlayingScreen component.
+ */
 interface PlayingScreenProps {
   onPauseGame: () => void;
   nLevel: number;
@@ -19,6 +22,13 @@ interface PlayingScreenProps {
   audioResponseMadeThisTrial: boolean;
 }
 
+/**
+ * Component for the active gameplay screen.
+ * Displays stimuli (visual and/or audio), trial progress, and response buttons.
+ *
+ * @param {PlayingScreenProps} props - Props containing current game state and interaction handlers.
+ * @returns JSX.Element - The gameplay UI.
+ */
 const PlayingScreenComponent: React.FC<PlayingScreenProps> = ({
   onPauseGame,
   nLevel,

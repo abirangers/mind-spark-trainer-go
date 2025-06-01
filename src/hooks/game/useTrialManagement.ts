@@ -3,6 +3,9 @@ import { toast } from "sonner";
 
 export type GameMode = "single-visual" | "single-audio" | "dual";
 
+/**
+ * Props for the useTrialManagement hook.
+ */
 interface TrialManagementProps {
   nLevel: number;
   numTrials: number;
@@ -21,6 +24,14 @@ interface TrialManagementProps {
   onAllTrialsComplete: () => void;
 }
 
+/**
+ * Custom hook to manage the lifecycle and state of individual trials within a game session.
+ * It handles trial timing, user responses, stimulus presentation calls, practice mode feedback,
+ * and advancing through trials until completion.
+ *
+ * @param {TrialManagementProps} props - Properties to configure trial management.
+ * @returns An object containing trial state, response data, and functions to manage trials.
+ */
 export const useTrialManagement = ({
   nLevel, // nLevel is used for context but not directly in most trial logic here
   numTrials,

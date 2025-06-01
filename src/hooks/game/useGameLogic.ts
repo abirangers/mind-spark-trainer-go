@@ -26,6 +26,9 @@ export interface GameSession {
   audioCorrectRejections?: number;
 }
 
+/**
+ * Props for the useGameLogic hook.
+ */
 interface GameLogicProps {
   initialGameMode?: GameMode;
   initialNLevel?: number;
@@ -47,6 +50,14 @@ const PRACTICE_MODE_CONST: GameMode = "single-visual"; // Renamed to avoid confl
 const PRACTICE_N_LEVEL_CONST = 1;
 const PRACTICE_NUM_TRIALS_CONST = 7;
 
+/**
+ * Custom hook to manage the core game logic, state transitions, and session outcomes.
+ * It handles game setup parameters (N-level, mode, trials), starting/resetting the game,
+ * ending a session, calculating results, and applying adaptive difficulty.
+ *
+ * @param {GameLogicProps} props - The properties to configure the game logic.
+ * @returns An object containing game state, setters for game parameters, and control functions.
+ */
 export const useGameLogic = ({
   initialGameMode = "single-visual",
   initialNLevel = 2,
