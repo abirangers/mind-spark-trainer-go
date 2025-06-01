@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const DEMO_SEQUENCE = [1, 5, 5, 2, 3, 3, 7, 0, 7]; // Example sequence
 const DEMO_INTERVAL_MS = 1500; // Interval between steps
@@ -30,10 +30,9 @@ const VisualDemo1Back = () => {
       }
 
       if (currentIndex === DEMO_SEQUENCE.length - 1) {
-        setLoopCount(prevLoopCount => prevLoopCount + 1);
+        setLoopCount((prevLoopCount) => prevLoopCount + 1);
       }
-      setCurrentDemoIndex(prevIndex => prevIndex + 1);
-
+      setCurrentDemoIndex((prevIndex) => prevIndex + 1);
     }, DEMO_INTERVAL_MS);
 
     return () => clearTimeout(timer);
@@ -47,7 +46,6 @@ const VisualDemo1Back = () => {
     setLoopCount(0);
   }, []);
 
-
   return (
     <div className="flex flex-col items-center my-4">
       <div className="grid grid-cols-3 gap-2 mb-4">
@@ -57,9 +55,13 @@ const VisualDemo1Back = () => {
             className={`
               w-16 h-16 border-2 rounded-lg flex items-center justify-center
               transition-all duration-300 ease-in-out
-              ${highlightedSquare === index
-                ? (isMatch ? 'bg-green-400 border-green-600 shadow-lg' : 'bg-blue-500 border-blue-600 shadow-lg')
-                : 'bg-gray-100 border-gray-300'}
+              ${
+                highlightedSquare === index
+                  ? isMatch
+                    ? "bg-green-400 border-green-600 shadow-lg"
+                    : "bg-blue-500 border-blue-600 shadow-lg"
+                  : "bg-gray-100 border-gray-300"
+              }
             `}
           >
             {/* Optionally display index or other info: {index} */}
@@ -67,12 +69,10 @@ const VisualDemo1Back = () => {
         ))}
       </div>
       {isMatch && highlightedSquare !== null && (
-        <p className="text-green-600 font-bold text-lg animate-pulse">
-          Match!
-        </p>
+        <p className="text-green-600 font-bold text-lg animate-pulse">Match!</p>
       )}
       {loopCount >= MAX_LOOPS && currentDemoIndex > 0 && (
-         <p className="text-gray-500 font-bold text-md mt-2">Demo complete.</p>
+        <p className="text-gray-500 font-bold text-md mt-2">Demo complete.</p>
       )}
     </div>
   );
