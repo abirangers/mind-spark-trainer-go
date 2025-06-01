@@ -88,7 +88,11 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     numTrials,
     setNumTrials,
     startGame,
+    pauseGame,
+    resumeGame,
     resetGame,
+    endPracticeSession,
+    endSession,
   } = gameLogic;
 
   const { resetStimulusSequences, cancelCurrentSpeech } = stimulusG;
@@ -122,6 +126,18 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
       cancelCurrentSpeech();
     }
   }, [resetGame, resetTrialStates, audioEnabled, cancelCurrentSpeech]);
+
+  const handlePauseGame = useCallback(() => {
+    if (gameState === "playing") {
+      pauseGame();
+      resetTrialStates(); // Stop current trial timers
+      if (audioEnabled) {
+        cancelCurrentSpeech();
+      }
+    } else if (gameState === "paused") {
+      resumeGame();
+    }
+  }, [gameState, pauseGame, resumeGame, resetTrialStates, audioEnabled, cancelCurrentSpeech]);
 
   // Keyboard event listener
   useEffect(() => {
@@ -162,7 +178,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   };
 
   const playingScreenProps = {
-    onPauseGame: handleResetGame,
+    onPauseGame: handlePauseGame,
     nLevel,
     gameMode,
     currentTrial,
@@ -205,6 +221,32 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   if (gameState === "playing") {
     return <PlayingScreen {...playingScreenProps} />;
+  }
+
+  if (gameState === "paused") {
+    // Show paused screen with resume button
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Game Paused</h2>
+          <p className="text-gray-600 mb-6">Click Resume to continue your training session</p>
+          <div className="space-x-4">
+            <button
+              onClick={handlePauseGame}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Resume
+            </button>
+            <button
+              onClick={endPracticeSession}
+              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              End Session
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (gameState === "results") {

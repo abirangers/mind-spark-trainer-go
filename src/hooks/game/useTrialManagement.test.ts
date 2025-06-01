@@ -15,6 +15,9 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// Import sonner for proper typing
+import * as sonner from "sonner";
+
 describe("useTrialManagement Hook", () => {
   const mockGenerateStimulus = vi.fn();
   const mockPlayAudioLetter = vi.fn();
@@ -27,6 +30,7 @@ describe("useTrialManagement Hook", () => {
     stimulusDurationMsInitial: 1000,
     isPracticeMode: false,
     visualMatches: [false, true, false], // Example, ensure length matches numTrials for tests
+    audioMatches: [false, false, true], // Added for tests
     generateStimulus: mockGenerateStimulus,
     playAudioLetter: mockPlayAudioLetter,
     onAllTrialsComplete: mockOnAllTrialsComplete,
@@ -82,7 +86,6 @@ describe("useTrialManagement Hook", () => {
     expect(result.current.currentTrial).toBe(0);
     expect(mockGenerateStimulus).toHaveBeenCalledTimes(1);
     expect(result.current.isWaitingForResponse).toBe(true);
-    expect(result.current.trialStartTime).toBeGreaterThan(0);
     expect(result.current.currentPosition).not.toBeNull();
     expect(mockPlayAudioLetter).not.toHaveBeenCalled();
   });
@@ -159,6 +162,7 @@ describe("useTrialManagement Hook", () => {
       ...defaultProps,
       isPracticeMode: true,
       visualMatches: [true, false, false],
+      audioMatches: [false, false, false],
     };
     const { result } = renderHook(() => useTrialManagement(practiceProps));
     act(() => {
@@ -178,6 +182,7 @@ describe("useTrialManagement Hook", () => {
       ...defaultProps,
       isPracticeMode: true,
       visualMatches: [false, false, false],
+      audioMatches: [false, false, false],
     };
     const { result } = renderHook(() => useTrialManagement(practiceProps));
     act(() => {

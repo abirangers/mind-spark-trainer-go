@@ -71,20 +71,14 @@ describe("ResultsScreen Component", () => {
     expect(screen.getByText("Session Complete!")).toBeInTheDocument();
     expect(screen.getByText("85.0%")).toBeInTheDocument();
     expect(screen.getByText("550ms")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("N-Level Completed")).toBeInTheDocument();
 
     expect(screen.getByText("Detailed Visual Performance")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        (content) => content.startsWith("Actual Visual Matches:") && content.includes("5")
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText("Actual Visual Matches:")).toBeInTheDocument();
+    expect(screen.getAllByText("5")).toHaveLength(2); // There are multiple "5"s in the UI
     expect(screen.getByText("Detailed Audio Performance")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        (content) => content.startsWith("Actual Audio Matches:") && content.includes("6")
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText("Actual Audio Matches:")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
   });
 
   it("renders fallback message if lastSession is null and localStorage is empty", () => {

@@ -56,8 +56,8 @@ describe("PlayingScreen Component", () => {
     expect(screen.getByText("2-Back Single Audio")).toBeInTheDocument();
     expect(screen.getByText("B")).toBeInTheDocument();
 
-    const visualGrid = screen.queryByRole("generic", { name: /grid/i }); // More specific query for grid
-    expect(visualGrid?.querySelector(".grid.grid-cols-3")).toBeNull(); // Check if grid content is absent
+    const visualGrid = screen.queryByTestId("visual-grid"); // Use test ID for more reliable querying
+    expect(visualGrid).toBeNull(); // Grid should not be rendered in single-audio mode
 
     expect(screen.queryByRole("button", { name: /Position Match/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Sound Match/i })).toBeInTheDocument();
@@ -128,6 +128,7 @@ describe("PlayingScreen Component", () => {
     // So it should be (9 / 20) * 100 = 45.
     // However, the component displays currentTrial + 1. So for trial 10 (currentTrial=9), it displays "10 / 20".
     // The progress bar value is (currentTrial / numTrials) * 100.
+    // Check if the progress bar has the correct value (shadcn Progress might use different attributes)
     expect(progressBar).toHaveAttribute("aria-valuenow", "45");
   });
 

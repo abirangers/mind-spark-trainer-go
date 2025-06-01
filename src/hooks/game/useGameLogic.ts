@@ -46,7 +46,7 @@ interface GameLogicProps {
   initialNumTrials?: number;
   isPracticeMode?: boolean;
   onPracticeComplete?: () => void;
-  resetStimulusSequences: () => void; // Called by startGame
+  // Removed resetStimulusSequences - will be handled in GameInterface
   // Removed: visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, currentTrial
   // These are now passed directly to endSession or managed by other hooks.
 }
@@ -69,7 +69,6 @@ export const useGameLogic = ({
   initialNumTrials = 20,
   isPracticeMode = false,
   onPracticeComplete,
-  resetStimulusSequences,
 }: GameLogicProps) => {
   const [gameMode, setGameMode] = useState<GameMode>(
     isPracticeMode ? PRACTICE_MODE_CONST : initialGameMode
@@ -81,6 +80,7 @@ export const useGameLogic = ({
   const [numTrials, setNumTrials] = useState<number>(
     isPracticeMode ? PRACTICE_NUM_TRIALS_CONST : initialNumTrials
   );
+  const [practiceCompleted, setPracticeCompleted] = useState(false);
 
   const isAdaptiveDifficultyEnabled = useSettingsStore(
     (state) => state.isAdaptiveDifficultyEnabled
@@ -93,6 +93,7 @@ export const useGameLogic = ({
         if (onPracticeComplete) {
           onPracticeComplete();
         }
+        setPracticeCompleted(true);
         setGameState("setup"); // Reset to setup after practice completion
         return;
       }
@@ -206,7 +207,7 @@ export const useGameLogic = ({
           adaptiveMessage = `N-Level maintained at ${nLevel}. Good effort!`;
         }
         if (nextNLevel !== nLevel) setNLevel(nextNLevel);
-        if (adaptiveMessage) toast(adaptiveMessage, { duration: 4000 });
+        if (adaptiveMessage) toast.message(adaptiveMessage, { duration: 4000 });
       }
     },
     [
@@ -223,14 +224,22 @@ export const useGameLogic = ({
 
   const startGame = useCallback(() => {
     setGameState("playing");
-    resetStimulusSequences();
-  }, [resetStimulusSequences, setGameState]);
+    // resetStimulusSequences is now handled in GameInterface
+  }, [setGameState]);
+
+  const pauseGame = useCallback(() => {
+    setGameState("paused");
+  }, [setGameState]);
+
+  const resumeGame = useCallback(() => {
+    setGameState("playing");
+  }, [setGameState]);
 
   useEffect(() => {
-    if (isPracticeMode && gameState === "setup") {
+    if (isPracticeMode && gameState === "setup" && !practiceCompleted) {
       startGame();
     }
-  }, [isPracticeMode, gameState, startGame]);
+  }, [isPracticeMode, gameState, startGame, practiceCompleted]);
 
   // Removed useEffect that auto-called endSession based on currentTrial prop.
   // endSession is now called by useTrialManagement via onAllTrialsComplete.
@@ -238,6 +247,14 @@ export const useGameLogic = ({
   const resetGame = useCallback(() => {
     setGameState("setup");
   }, [setGameState]);
+
+  const endPracticeSession = useCallback(() => {
+    if (isPracticeMode && onPracticeComplete) {
+      onPracticeComplete();
+    } else {
+      setGameState("setup");
+    }
+  }, [isPracticeMode, onPracticeComplete, setGameState]);
 
   return {
     gameMode,
@@ -249,7 +266,10 @@ export const useGameLogic = ({
     numTrials,
     setNumTrials,
     startGame,
+    pauseGame,
+    resumeGame,
     resetGame,
+    endPracticeSession,
     endSession, // Expose endSession
     PRACTICE_MODE: PRACTICE_MODE_CONST,
     PRACTICE_N_LEVEL: PRACTICE_N_LEVEL_CONST,

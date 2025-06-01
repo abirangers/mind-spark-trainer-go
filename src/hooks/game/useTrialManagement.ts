@@ -15,7 +15,7 @@ interface EndSessionResultsData {
 /**
  * Props for the useTrialManagement hook.
  */
-interface TrialManagementProps {
+export interface TrialManagementProps {
   nLevel: number;
   numTrials: number;
   gameMode: GameMode;
@@ -81,12 +81,34 @@ export const useTrialManagement = ({
   }, [numTrials]);
 
   const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode && currentTrial < visualMatches.length) {
-      const visualExpected = visualMatches[currentTrial];
-      if (visualExpected) {
-        toast.error("Missed Match!", { duration: 1500 });
-      } else {
-        toast.info("Correct: No match there.", { duration: 1500 });
+    if (isPracticeMode && visualMatches) {
+      const visualLength = visualMatches.length || 0;
+      const audioLength = audioMatches?.length || 0;
+      const maxTrials = Math.max(visualLength, audioLength);
+
+      if (currentTrial < maxTrials) {
+        // Check for matches based on game mode
+        let hasMatch = false;
+
+        if (gameMode === "single-visual" || gameMode === "dual") {
+          const visualExpected = visualMatches[currentTrial];
+          if (visualExpected) {
+            hasMatch = true;
+          }
+        }
+
+        if ((gameMode === "single-audio" || gameMode === "dual") && audioMatches) {
+          const audioExpected = audioMatches[currentTrial];
+          if (audioExpected) {
+            hasMatch = true;
+          }
+        }
+
+        if (hasMatch) {
+          toast.error("Missed Match!", { duration: 1500 });
+        } else {
+          toast.info("Correct: No match there.", { duration: 1500 });
+        }
       }
     }
 
@@ -96,7 +118,15 @@ export const useTrialManagement = ({
 
     setResponseTimes((prev) => [...prev, stimulusDurationMs]);
     advanceTrial();
-  }, [isPracticeMode, currentTrial, visualMatches, stimulusDurationMs, advanceTrial]);
+  }, [
+    isPracticeMode,
+    currentTrial,
+    visualMatches,
+    audioMatches,
+    gameMode,
+    stimulusDurationMs,
+    advanceTrial,
+  ]);
 
   const startSingleTrialExecution = useCallback(() => {
     if (currentTrial >= numTrials) return;
@@ -211,6 +241,7 @@ export const useTrialManagement = ({
     setUserVisualResponses(Array(numTrials).fill(false));
     setUserAudioResponses(Array(numTrials).fill(false));
     setResponseTimes([]);
+    setCurrentTrial(0); // Reset current trial when numTrials changes
   }, [numTrials]);
 
   useEffect(() => {

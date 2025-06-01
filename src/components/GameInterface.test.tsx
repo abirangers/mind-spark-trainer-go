@@ -58,7 +58,7 @@ import type {
 
 // Helper to create a typed mock function
 const mockFn = <
-  T extends (new (...args: unknown[]) => unknown) | ((...args: unknown[]) => unknown)
+  T extends (new (...args: unknown[]) => unknown) | ((...args: unknown[]) => unknown),
 >(
   fn?: T
 ): Mock<Parameters<T>, ReturnType<T>> => {

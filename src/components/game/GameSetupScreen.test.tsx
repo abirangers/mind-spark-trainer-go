@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react"; // Removed fireEvent as userEvent is preferred
+import { render, screen, within } from "@testing-library/react"; // Removed fireEvent as userEvent is preferred
 import userEvent from "@testing-library/user-event";
 import { GameSetupScreen, GameMode } from "./GameSetupScreen"; // Adjust path as needed
 // AdaptiveDifficultyToggle is imported by GameSetupScreen, so it needs to be truly mocked if not tested here.
@@ -44,8 +44,8 @@ describe("GameSetupScreen Component", () => {
   it("renders correctly with initial props", () => {
     render(<GameSetupScreen {...defaultProps} />);
     expect(screen.getByText("N-Back Training Setup")).toBeInTheDocument();
-    // Check for the class on the parent div of the text
-    const visualModeCard = screen.getByText("Single N-Back (Visual)").closest("div");
+    // Check for the class on the parent div of the text - need to go up more levels
+    const visualModeCard = screen.getByText("Single N-Back (Visual)").closest("div")?.parentElement;
     expect(visualModeCard).toHaveClass("border-blue-500");
     expect(screen.getByText("2-Back")).toBeInTheDocument();
     expect(screen.getByText("20")).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("GameSetupScreen Component", () => {
     render(<GameSetupScreen {...defaultProps} nLevel={2} />);
     // N-Level buttons are distinguished by their context. Let's be more specific if possible
     // For now, using getAllByRole and indexing based on visual order.
-    const nLevelControls = screen.getByText("N-Level (Difficulty)").closest("div");
+    const nLevelControls = screen.getByText("N-Level").closest("div");
     const increaseButton = within(nLevelControls!).getByRole("button", { name: "+" });
     const decreaseButton = within(nLevelControls!).getByRole("button", { name: "-" });
 
@@ -126,9 +126,4 @@ describe("GameSetupScreen Component", () => {
   // Conceptual test removed as component returns null, making query impossible.
 });
 
-// Helper to scope queries if needed, from @testing-library/dom
-const within = (element: HTMLElement) => ({
-  getByRole: (role: string, options?: { name?: RegExp | string }) =>
-    screen.getByRole(role, { ...options, container: element }),
-  // Add other queries as needed
-});
+// Using the proper within function from @testing-library/react

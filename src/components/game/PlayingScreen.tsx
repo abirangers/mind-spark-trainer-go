@@ -63,13 +63,19 @@ const PlayingScreenComponent: React.FC<PlayingScreenProps> = ({
           </div>
         </div>
         <div className="mb-8">
-          <Progress value={numTrials > 0 ? (currentTrial / numTrials) * 100 : 0} className="h-2" />
+          <Progress
+            value={numTrials > 0 ? (currentTrial / numTrials) * 100 : 0}
+            className="h-2"
+            aria-valuenow={numTrials > 0 ? (currentTrial / numTrials) * 100 : 0}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          />
         </div>
         <div className="bg-white rounded-lg p-8 mb-8 shadow-lg">
           <div className="space-y-8">
             {(gameMode === "single-visual" || gameMode === "dual") && (
               <div className="text-center">
-                <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto" data-testid="visual-grid">
                   {[...Array(9)].map((_, index) => (
                     <div
                       key={index}

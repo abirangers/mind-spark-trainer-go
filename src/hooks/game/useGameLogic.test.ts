@@ -16,6 +16,9 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// Import sonner for proper typing
+import * as sonner from "sonner";
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: { [key: string]: string } = {};
@@ -37,7 +40,6 @@ const localStorageMock = (() => {
 vi.stubGlobal("localStorage", localStorageMock);
 
 describe("useGameLogic Hook", () => {
-  const mockResetStimulusSequences = vi.fn();
   // The props for useGameLogic used 'executeTrial', let's align with that.
   // The test setup used 'initiateFirstTrial', but the hook itself expects 'executeTrial'.
   const mockExecuteTrial = vi.fn();
@@ -50,15 +52,7 @@ describe("useGameLogic Hook", () => {
     initialNumTrials: 5,
     isPracticeMode: false,
     onPracticeComplete: mockOnPracticeComplete,
-    visualMatches: [true, false, true, false, true],
-    audioMatches: [false, true, false, true, false],
-    userVisualResponses: [],
-    userAudioResponses: [],
-    responseTimes: [],
-    resetStimulusSequences: mockResetStimulusSequences,
-    executeTrial: mockExecuteTrial,
-    resetTrialStates: mockResetTrialStates,
-    currentTrial: 0,
+    // resetStimulusSequences is now handled in GameInterface, not passed to useGameLogic
   };
 
   let originalSettingsStoreState: ReturnType<typeof useSettingsStore.getState>;
@@ -89,18 +83,18 @@ describe("useGameLogic Hook", () => {
     expect(result.current.numTrials).toBe(defaultProps.initialNumTrials);
   });
 
-  it("startGame should set gameState to playing and call resetStimulusSequences", () => {
+  it("startGame should set gameState to playing", () => {
     const { result } = renderHook(() => useGameLogic(defaultProps));
     act(() => {
       result.current.startGame();
     });
     expect(result.current.gameState).toBe("playing" as GameState);
-    expect(mockResetStimulusSequences).toHaveBeenCalledTimes(1);
+    // resetStimulusSequences is now handled in GameInterface, not in useGameLogic
     // executeTrial is called by GameInterface via useEffect when gameState becomes 'playing'
     expect(mockExecuteTrial).not.toHaveBeenCalled();
   });
 
-  it("resetGame should set gameState to setup and call resetTrialStates", () => {
+  it("resetGame should set gameState to setup", () => {
     const { result } = renderHook(() => useGameLogic(defaultProps));
     act(() => {
       result.current.startGame();
@@ -109,15 +103,16 @@ describe("useGameLogic Hook", () => {
       result.current.resetGame();
     });
     expect(result.current.gameState).toBe("setup" as GameState);
-    expect(mockResetTrialStates).toHaveBeenCalledTimes(1);
   });
 
   describe("endSession logic", () => {
     it("should set gameState to results and calculate accuracy correctly for single-visual", () => {
       const props = {
         ...defaultProps,
-        gameMode: "single-visual" as GameMode,
-        numTrials: 3,
+        initialGameMode: "single-visual" as GameMode,
+        initialNumTrials: 3,
+      };
+      const resultsData = {
         visualMatches: [true, false, true], // Expected
         userVisualResponses: [true, true, true], // Actual (1 Hit, 1 FA, 1 Hit) -> 2 correct (Hit, CR implied for FA)
         audioMatches: [],
@@ -126,7 +121,7 @@ describe("useGameLogic Hook", () => {
       };
       const { result } = renderHook(() => useGameLogic(props));
       act(() => {
-        result.current.endSession();
+        result.current.endSession(resultsData);
       });
 
       expect(result.current.gameState).toBe("results" as GameState);
@@ -149,8 +144,10 @@ describe("useGameLogic Hook", () => {
     it("should correctly calculate accuracy for dual mode", () => {
       const props = {
         ...defaultProps,
-        gameMode: "dual" as GameMode,
-        numTrials: 2,
+        initialGameMode: "dual" as GameMode,
+        initialNumTrials: 2,
+      };
+      const resultsData = {
         visualMatches: [true, false],
         audioMatches: [false, true],
         userVisualResponses: [true, false], // Visual: T/T (Hit), F/F (CR) -> 2/2 = 100%
@@ -159,7 +156,7 @@ describe("useGameLogic Hook", () => {
       };
       const { result } = renderHook(() => useGameLogic(props));
       act(() => {
-        result.current.endSession();
+        result.current.endSession(resultsData);
       });
       const sessions = JSON.parse(localStorage.getItem("nback-sessions") || "[]");
       expect(sessions.length).toBeGreaterThan(0);
@@ -173,21 +170,25 @@ describe("useGameLogic Hook", () => {
       useSettingsStore.setState({ isAdaptiveDifficultyEnabled: true });
       const props = {
         ...defaultProps,
-        nLevel: 2,
-        gameMode: "single-visual" as GameMode,
+        initialNLevel: 2,
+        initialGameMode: "single-visual" as GameMode,
+        initialNumTrials: 3,
+      };
+      const resultsData = {
         visualMatches: [true, true, true],
         userVisualResponses: [true, true, true],
-        numTrials: 3,
         audioMatches: [],
         userAudioResponses: [],
+        responseTimes: [100, 100, 100],
       };
       const { result } = renderHook(() => useGameLogic(props));
       act(() => {
-        result.current.endSession();
+        result.current.endSession(resultsData);
       });
       expect(result.current.nLevel).toBe(3);
       expect(vi.mocked(sonner.toast).message).toHaveBeenCalledWith(
-        expect.stringContaining("N-Level increased to 3!")
+        "Congratulations! N-Level increased to 3!",
+        { duration: 4000 }
       );
     });
 
@@ -195,21 +196,25 @@ describe("useGameLogic Hook", () => {
       useSettingsStore.setState({ isAdaptiveDifficultyEnabled: true });
       const props = {
         ...defaultProps,
-        nLevel: 3,
-        gameMode: "single-visual" as GameMode,
+        initialNLevel: 3,
+        initialGameMode: "single-visual" as GameMode,
+        initialNumTrials: 3,
+      };
+      const resultsData = {
         visualMatches: [true, true, true],
         userVisualResponses: [false, false, false],
-        numTrials: 3,
         audioMatches: [],
         userAudioResponses: [],
+        responseTimes: [100, 100, 100],
       };
       const { result } = renderHook(() => useGameLogic(props));
       act(() => {
-        result.current.endSession();
+        result.current.endSession(resultsData);
       });
       expect(result.current.nLevel).toBe(2);
       expect(vi.mocked(sonner.toast).message).toHaveBeenCalledWith(
-        expect.stringContaining("N-Level decreased to 2.")
+        "N-Level decreased to 2. Keep practicing!",
+        { duration: 4000 }
       );
     });
 
@@ -217,17 +222,20 @@ describe("useGameLogic Hook", () => {
       useSettingsStore.setState({ isAdaptiveDifficultyEnabled: false });
       const props = {
         ...defaultProps,
-        nLevel: 2,
-        gameMode: "single-visual" as GameMode,
+        initialNLevel: 2,
+        initialGameMode: "single-visual" as GameMode,
+        initialNumTrials: 3,
+      };
+      const resultsData = {
         visualMatches: [true, true, true],
         userVisualResponses: [true, true, true],
-        numTrials: 3,
         audioMatches: [],
         userAudioResponses: [],
+        responseTimes: [100, 100, 100],
       };
       const { result } = renderHook(() => useGameLogic(props));
       act(() => {
-        result.current.endSession();
+        result.current.endSession(resultsData);
       });
       expect(result.current.nLevel).toBe(2);
       expect(vi.mocked(sonner.toast).message).not.toHaveBeenCalledWith(
@@ -239,16 +247,29 @@ describe("useGameLogic Hook", () => {
       const props = {
         ...defaultProps,
         isPracticeMode: true,
-        numTrials: 1,
+        initialNumTrials: 1,
+      };
+      const resultsData = {
         visualMatches: [true],
         userVisualResponses: [true],
         audioMatches: [],
         userAudioResponses: [],
+        responseTimes: [100],
       };
       const { result } = renderHook(() => useGameLogic(props));
+
+      // Start the game first (practice mode auto-starts)
+      expect(result.current.gameState).toBe("playing");
+
       act(() => {
-        result.current.endSession();
+        result.current.endSession(resultsData);
       });
+
+      // Wait for any additional effects to complete
+      act(() => {
+        // Allow any pending effects to run
+      });
+
       expect(mockOnPracticeComplete).toHaveBeenCalledTimes(1);
       expect(localStorage.getItem("nback-sessions")).toBeNull(); // No session saved
       expect(vi.mocked(sonner.toast).success).toHaveBeenCalledWith(
@@ -273,28 +294,9 @@ describe("useGameLogic Hook", () => {
     // Initial render with isPracticeMode = true should trigger startGame via useEffect
     const { result } = renderHook(() => useGameLogic({ ...defaultProps, isPracticeMode: true }));
     expect(result.current.gameState).toBe("playing"); // startGame sets it to 'playing'
-    expect(mockResetStimulusSequences).toHaveBeenCalled();
+    // resetStimulusSequences is now handled in GameInterface, not in useGameLogic
   });
 
-  it("useEffect should call endSession when currentTrial equals numTrials (passed as prop)", () => {
-    const props = { ...defaultProps, numTrials: 1, currentTrial: 0 }; // Game starts, currentTrial = 0
-    const { result, rerender } = renderHook((p: GameLogicProps) => useGameLogic(p), {
-      initialProps: props,
-    });
-
-    act(() => {
-      result.current.startGame();
-    }); // gameState is 'playing'
-
-    // Simulate trial completion by GameInterface updating currentTrial prop
-    act(() => {
-      rerender({ ...props, currentTrial: 1, gameState: "playing" }); // currentTrial now equals numTrials
-    });
-
-    expect(result.current.gameState).toBe("results"); // endSession called by effect, sets state to 'results'
-    expect(JSON.parse(localStorage.getItem("nback-sessions")!)[0].trials).toBe(1);
-    expect(vi.mocked(sonner.toast).success).toHaveBeenCalledWith(
-      expect.stringContaining("Session Complete!")
-    );
-  });
+  // Note: The useEffect that auto-called endSession based on currentTrial prop has been removed.
+  // endSession is now called by useTrialManagement via onAllTrialsComplete callback.
 });

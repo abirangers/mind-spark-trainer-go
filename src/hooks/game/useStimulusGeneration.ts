@@ -27,6 +27,10 @@ export const useStimulusGeneration = ({
   const [audioMatches, setAudioMatches] = useState<boolean[]>([]);
   const synthRef = useRef<SpeechSynthesis | null>(null);
 
+  // Refs to track current state for synchronous access
+  const visualSeqRef = useRef<number[]>([]);
+  const audioSeqRef = useRef<string[]>([]);
+
   useEffect(() => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       synthRef.current = window.speechSynthesis;
@@ -42,32 +46,32 @@ export const useStimulusGeneration = ({
   const generateStimulus = useCallback(() => {
     const newPosition = Math.floor(Math.random() * 9);
     const newLetter = letters[Math.floor(Math.random() * letters.length)];
-    let vMatch = false;
-    setVisualSequence((currentSeq) => {
-      const updatedSeq = [...currentSeq, newPosition];
-      // Ensure nLevel is at least 0 for array indexing, though nLevel is usually 1+
-      // Match calculation should be based on the *newly updated* sequence state.
-      if (updatedSeq.length > nLevel && nLevel >= 0) {
-        // Check nLevel >=0 for safety, though practically it's 1+
-        vMatch = updatedSeq[updatedSeq.length - 1 - nLevel] === newPosition;
-      } else {
-        vMatch = false;
-      }
-      return updatedSeq;
-    });
-    setVisualMatches((prev) => [...prev, vMatch]); // vMatch is set correctly before this state update
 
-    let aMatch = false;
-    setAudioSequence((currentSeq) => {
-      const updatedSeq = [...currentSeq, newLetter];
-      if (updatedSeq.length > nLevel && nLevel >= 0) {
-        aMatch = updatedSeq[updatedSeq.length - 1 - nLevel] === newLetter;
-      } else {
-        aMatch = false;
-      }
-      return updatedSeq;
-    });
-    setAudioMatches((prev) => [...prev, aMatch]); // aMatch is set correctly
+    // Calculate matches using current ref values
+    const currentVisualSeq = visualSeqRef.current;
+    const currentAudioSeq = audioSeqRef.current;
+
+    const newVisualSeq = [...currentVisualSeq, newPosition];
+    const newAudioSeq = [...currentAudioSeq, newLetter];
+
+    const vMatch = newVisualSeq.length > nLevel && nLevel >= 0
+      ? newVisualSeq[newVisualSeq.length - 1 - nLevel] === newPosition
+      : false;
+
+    const aMatch = newAudioSeq.length > nLevel && nLevel >= 0
+      ? newAudioSeq[newAudioSeq.length - 1 - nLevel] === newLetter
+      : false;
+
+    // Update refs
+    visualSeqRef.current = newVisualSeq;
+    audioSeqRef.current = newAudioSeq;
+
+    // Update state
+    setVisualSequence(newVisualSeq);
+    setAudioSequence(newAudioSeq);
+    setVisualMatches((prev) => [...prev, vMatch]);
+    setAudioMatches((prev) => [...prev, aMatch]);
+
     return { newPosition, newLetter, visualMatch: vMatch, audioMatch: aMatch };
   }, [nLevel, letters]);
 
@@ -85,6 +89,8 @@ export const useStimulusGeneration = ({
   ); // synthRef.current is a ref, not needed in dep array if its assignment is stable
 
   const resetStimulusSequences = useCallback(() => {
+    visualSeqRef.current = [];
+    audioSeqRef.current = [];
     setVisualSequence([]);
     setAudioSequence([]);
     setVisualMatches([]);

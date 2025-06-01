@@ -25,6 +25,14 @@ describe("useStimulusGeneration Hook", () => {
       getVoices: () => [],
     };
     vi.stubGlobal("speechSynthesis", mockSpeechSynthesis);
+
+    // Mock SpeechSynthesisUtterance
+    vi.stubGlobal("SpeechSynthesisUtterance", vi.fn().mockImplementation((text) => ({
+      text,
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0,
+    })));
   });
 
   afterEach(() => {
@@ -75,14 +83,14 @@ describe("useStimulusGeneration Hook", () => {
     const propsN1: StimulusGenerationHookProps = { ...defaultProps, nLevel: 1 };
     const { result } = renderHook(() => useStimulusGeneration(propsN1));
 
-    const originalMath = global.Math;
-    const mockMath = Object.create(global.Math);
-    mockMath.random = vi
-      .fn()
-      .mockReturnValueOnce(0.5) // Trial 1: pos 4 (9*0.5=4.5->4), letter B (3*0.5=1.5->idx 1)
-      .mockReturnValueOnce(0.5) // Trial 2: pos 4, letter B (MATCH)
-      .mockReturnValueOnce(0.1); // Trial 3: pos 0 (9*0.1=0.9->0), letter A (3*0.1=0.3->idx 0)
-    global.Math = mockMath;
+    const mockRandom = vi.spyOn(Math, 'random');
+    mockRandom
+      .mockReturnValueOnce(0.5) // Trial 1: pos 4 (9*0.5=4.5->4)
+      .mockReturnValueOnce(0.5) // Trial 1: letter B (12*0.5=6->idx 6)
+      .mockReturnValueOnce(0.5) // Trial 2: pos 4 (MATCH)
+      .mockReturnValueOnce(0.5) // Trial 2: letter B (MATCH)
+      .mockReturnValueOnce(0.1) // Trial 3: pos 0 (9*0.1=0.9->0)
+      .mockReturnValueOnce(0.1); // Trial 3: letter A (12*0.1=1.2->idx 1)
 
     let s1, s2, s3;
     act(() => {
@@ -108,7 +116,7 @@ describe("useStimulusGeneration Hook", () => {
     expect(s3?.visualMatch).toBe(false);
     expect(result.current.visualSequence[2]).toBe(0);
 
-    global.Math = originalMath;
+    mockRandom.mockRestore();
   });
 
   it("generateStimulus should correctly identify audio matches (N-Back)", () => {
@@ -119,14 +127,14 @@ describe("useStimulusGeneration Hook", () => {
     };
     const { result } = renderHook(() => useStimulusGeneration(propsN1));
 
-    const originalMath = global.Math;
-    const mockMath = Object.create(global.Math);
-    mockMath.random = vi
-      .fn()
-      .mockReturnValueOnce(0.3) // letter 'X' (2*0.3=0.6 -> idx 0)
-      .mockReturnValueOnce(0.3) // letter 'X' again (MATCH)
-      .mockReturnValueOnce(0.8); // letter 'Y' (2*0.8=1.6 -> idx 1)
-    global.Math = mockMath;
+    const mockRandom = vi.spyOn(Math, 'random');
+    mockRandom
+      .mockReturnValueOnce(0.3) // Trial 1: pos 2 (9*0.3=2.7->2)
+      .mockReturnValueOnce(0.3) // Trial 1: letter 'X' (2*0.3=0.6 -> idx 0)
+      .mockReturnValueOnce(0.3) // Trial 2: pos 2
+      .mockReturnValueOnce(0.3) // Trial 2: letter 'X' again (MATCH)
+      .mockReturnValueOnce(0.8) // Trial 3: pos 7 (9*0.8=7.2->7)
+      .mockReturnValueOnce(0.8); // Trial 3: letter 'Y' (2*0.8=1.6 -> idx 1)
 
     let s1, s2, s3;
     act(() => {
@@ -152,7 +160,7 @@ describe("useStimulusGeneration Hook", () => {
     expect(s3?.audioMatch).toBe(false);
     expect(result.current.audioSequence[2]).toBe("Y");
 
-    global.Math = originalMath;
+    mockRandom.mockRestore();
   });
 
   it("resetStimulusSequences should clear all sequences and matches", () => {
