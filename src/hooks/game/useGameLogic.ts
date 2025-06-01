@@ -134,15 +134,19 @@ export const useGameLogic = ({
     const audioAccuracy = currentNumTrials > 0 ? (audioCorrect / currentNumTrials) * 100 : 0;
 
     let overallAccuracy = 0;
-    if (gameMode === 'dual') {
-        overallAccuracy = (visualAccuracy + audioAccuracy) / 2;
-    } else if (gameMode === 'single-visual') {
-        overallAccuracy = visualAccuracy;
-    } else { // single-audio
-        overallAccuracy = audioAccuracy;
+    if (gameMode === "dual") {
+      overallAccuracy = (visualAccuracy + audioAccuracy) / 2;
+    } else if (gameMode === "single-visual") {
+      overallAccuracy = visualAccuracy;
+    } else {
+      // single-audio
+      overallAccuracy = audioAccuracy;
     }
 
-    const avgResponseTime = responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : 0;
+    const avgResponseTime =
+      responseTimes.length > 0
+        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+        : 0;
 
     const session: GameSession = {
       trials: currentNumTrials,
@@ -153,8 +157,16 @@ export const useGameLogic = ({
       averageResponseTime: avgResponseTime || 0, // Ensure not NaN
       mode: gameMode,
       timestamp: new Date().toISOString(),
-      actualVisualMatches, visualHits, visualMisses, visualFalseAlarms, visualCorrectRejections,
-      actualAudioMatches, audioHits, audioMisses, audioFalseAlarms, audioCorrectRejections,
+      actualVisualMatches,
+      visualHits,
+      visualMisses,
+      visualFalseAlarms,
+      visualCorrectRejections,
+      actualAudioMatches,
+      audioHits,
+      audioMisses,
+      audioFalseAlarms,
+      audioCorrectRejections,
     };
 
     const sessions = JSON.parse(localStorage.getItem("nback-sessions") || "[]");
@@ -181,11 +193,19 @@ export const useGameLogic = ({
       if (nextNLevel !== nLevel) setNLevel(nextNLevel);
       if (adaptiveMessage) toast(adaptiveMessage, { duration: 4000 });
     }
-
   }, [
-    isPracticeMode, onPracticeComplete, numTrials, nLevel, gameMode,
-    visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes,
-    isAdaptiveDifficultyEnabled, setNLevel, // toast is problematic as a dep
+    isPracticeMode,
+    onPracticeComplete,
+    numTrials,
+    nLevel,
+    gameMode,
+    visualMatches,
+    audioMatches,
+    userVisualResponses,
+    userAudioResponses,
+    responseTimes,
+    isAdaptiveDifficultyEnabled,
+    setNLevel, // toast is problematic as a dep
   ]);
 
   const startGame = useCallback(() => {
@@ -202,17 +222,16 @@ export const useGameLogic = ({
   }, [isPracticeMode, gameState, startGame]);
 
   useEffect(() => {
-    if (gameState === "playing" && currentTrial === numTrials && numTrials > 0) { // ensure numTrials > 0
+    if (gameState === "playing" && currentTrial === numTrials && numTrials > 0) {
+      // ensure numTrials > 0
       endSession();
     }
   }, [gameState, currentTrial, numTrials, endSession]);
-
 
   const resetGame = useCallback(() => {
     setGameState("setup");
     // Other resets (trial timeouts, audio cancellation) are handled by their respective hooks/GameInterface.
   }, [setGameState]);
-
 
   return {
     gameMode,

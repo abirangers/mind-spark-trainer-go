@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-const DEMO_SEQUENCE = ['C', 'H', 'H', 'K', 'S', 'S', 'P', 'D', 'D']; // Example sequence
+const DEMO_SEQUENCE = ["C", "H", "H", "K", "S", "S", "P", "D", "D"]; // Example sequence
 const DEMO_INTERVAL_MS = 1500; // Interval between steps
 const MAX_LOOPS = 2; // Number of times to loop the demo
 
@@ -29,10 +29,9 @@ const AudioDemo1Back = () => {
       }
 
       if (currentIndexInSequence === DEMO_SEQUENCE.length - 1) {
-        setLoopCount(prevLoopCount => prevLoopCount + 1);
+        setLoopCount((prevLoopCount) => prevLoopCount + 1);
       }
-      setCurrentDemoIndex(prevIndex => prevIndex + 1);
-
+      setCurrentDemoIndex((prevIndex) => prevIndex + 1);
     }, DEMO_INTERVAL_MS);
 
     return () => clearTimeout(timer);
@@ -52,14 +51,14 @@ const AudioDemo1Back = () => {
         className={`
           w-24 h-24 border-2 rounded-lg flex items-center justify-center mb-4
           transition-all duration-300 ease-in-out
-          ${isMatch && currentLetter ? 'bg-green-100 border-green-500' : 'bg-white border-gray-300'}
+          ${isMatch && currentLetter ? "bg-green-100 border-green-500" : "bg-white border-gray-300"}
         `}
       >
         {currentLetter && (
           <span
             className={`
               text-6xl font-bold
-              ${isMatch ? 'text-green-600' : 'text-orange-600'}
+              ${isMatch ? "text-green-600" : "text-orange-600"}
             `}
           >
             {currentLetter}
@@ -68,17 +67,15 @@ const AudioDemo1Back = () => {
         {!currentLetter && loopCount >= MAX_LOOPS && (
           <span className="text-xl text-gray-400">Done</span>
         )}
-         {!currentLetter && loopCount < MAX_LOOPS && (
+        {!currentLetter && loopCount < MAX_LOOPS && (
           <span className="text-xl text-gray-400">...</span>
         )}
       </div>
       {isMatch && currentLetter && (
-        <p className="text-green-600 font-bold text-lg animate-pulse">
-          Match!
-        </p>
+        <p className="text-green-600 font-bold text-lg animate-pulse">Match!</p>
       )}
       {loopCount >= MAX_LOOPS && currentDemoIndex > 0 && (
-         <p className="text-gray-500 font-bold text-md mt-2">Demo complete.</p>
+        <p className="text-gray-500 font-bold text-md mt-2">Demo complete.</p>
       )}
     </div>
   );

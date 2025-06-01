@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react'; // Removed fireEvent as userEvent is preferred
-import userEvent from '@testing-library/user-event';
-import { GameSetupScreen, GameMode } from './GameSetupScreen'; // Adjust path as needed
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react"; // Removed fireEvent as userEvent is preferred
+import userEvent from "@testing-library/user-event";
+import { GameSetupScreen, GameMode } from "./GameSetupScreen"; // Adjust path as needed
 // AdaptiveDifficultyToggle is imported by GameSetupScreen, so it needs to be truly mocked if not tested here.
 // The mock below is correct.
 
-vi.mock('@/components/ui/AdaptiveDifficultyToggle', () => ({
-  AdaptiveDifficultyToggle: vi.fn(() => <div data-testid="adaptive-difficulty-toggle-mock">Adaptive Mock</div>),
+vi.mock("@/components/ui/AdaptiveDifficultyToggle", () => ({
+  AdaptiveDifficultyToggle: vi.fn(() => (
+    <div data-testid="adaptive-difficulty-toggle-mock">Adaptive Mock</div>
+  )),
 }));
 
-describe('GameSetupScreen Component', () => {
+describe("GameSetupScreen Component", () => {
   const mockOnBack = vi.fn();
   const mockSetGameMode = vi.fn();
   const mockSetNLevel = vi.fn();
@@ -21,7 +23,7 @@ describe('GameSetupScreen Component', () => {
 
   const defaultProps = {
     onBack: mockOnBack,
-    gameMode: 'single-visual' as GameMode,
+    gameMode: "single-visual" as GameMode,
     setGameMode: mockSetGameMode,
     nLevel: 2,
     setNLevel: mockSetNLevel,
@@ -39,39 +41,39 @@ describe('GameSetupScreen Component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders correctly with initial props', () => {
+  it("renders correctly with initial props", () => {
     render(<GameSetupScreen {...defaultProps} />);
-    expect(screen.getByText('N-Back Training Setup')).toBeInTheDocument();
+    expect(screen.getByText("N-Back Training Setup")).toBeInTheDocument();
     // Check for the class on the parent div of the text
-    const visualModeCard = screen.getByText('Single N-Back (Visual)').closest('div');
-    expect(visualModeCard).toHaveClass('border-blue-500');
-    expect(screen.getByText('2-Back')).toBeInTheDocument();
-    expect(screen.getByText('20')).toBeInTheDocument();
-    expect(screen.getByText('3.0s')).toBeInTheDocument();
-    expect(screen.getByText('Audio On')).toBeInTheDocument();
-    expect(screen.getByTestId('adaptive-difficulty-toggle-mock')).toBeInTheDocument();
+    const visualModeCard = screen.getByText("Single N-Back (Visual)").closest("div");
+    expect(visualModeCard).toHaveClass("border-blue-500");
+    expect(screen.getByText("2-Back")).toBeInTheDocument();
+    expect(screen.getByText("20")).toBeInTheDocument();
+    expect(screen.getByText("3.0s")).toBeInTheDocument();
+    expect(screen.getByText("Audio On")).toBeInTheDocument();
+    expect(screen.getByTestId("adaptive-difficulty-toggle-mock")).toBeInTheDocument();
   });
 
-  it('calls onBack when back button is clicked', async () => {
+  it("calls onBack when back button is clicked", async () => {
     render(<GameSetupScreen {...defaultProps} />);
-    await user.click(screen.getByRole('button', { name: /Back/i }));
+    await user.click(screen.getByRole("button", { name: /Back/i }));
     expect(mockOnBack).toHaveBeenCalledTimes(1);
   });
 
-  it('calls setGameMode when a game mode is selected', async () => {
+  it("calls setGameMode when a game mode is selected", async () => {
     render(<GameSetupScreen {...defaultProps} />);
     // Click the parent div that has the onClick handler
-    await user.click(screen.getByText('Dual N-Back').closest('div')!);
-    expect(mockSetGameMode).toHaveBeenCalledWith('dual');
+    await user.click(screen.getByText("Dual N-Back").closest("div")!);
+    expect(mockSetGameMode).toHaveBeenCalledWith("dual");
   });
 
-  it('calls setNLevel when N-Level buttons are clicked', async () => {
+  it("calls setNLevel when N-Level buttons are clicked", async () => {
     render(<GameSetupScreen {...defaultProps} nLevel={2} />);
     // N-Level buttons are distinguished by their context. Let's be more specific if possible
     // For now, using getAllByRole and indexing based on visual order.
-    const nLevelControls = screen.getByText('N-Level (Difficulty)').closest('div');
-    const increaseButton = within(nLevelControls!).getByRole('button', { name: '+' });
-    const decreaseButton = within(nLevelControls!).getByRole('button', { name: '-' });
+    const nLevelControls = screen.getByText("N-Level (Difficulty)").closest("div");
+    const increaseButton = within(nLevelControls!).getByRole("button", { name: "+" });
+    const decreaseButton = within(nLevelControls!).getByRole("button", { name: "-" });
 
     await user.click(increaseButton);
     expect(mockSetNLevel).toHaveBeenCalledTimes(1);
@@ -80,11 +82,11 @@ describe('GameSetupScreen Component', () => {
     expect(mockSetNLevel).toHaveBeenCalledTimes(2);
   });
 
-  it('calls setNumTrials when Num Trials buttons are clicked', async () => {
+  it("calls setNumTrials when Num Trials buttons are clicked", async () => {
     render(<GameSetupScreen {...defaultProps} numTrials={20} />);
-    const numTrialsControls = screen.getByText('Number of Trials').closest('div');
-    const increaseButton = within(numTrialsControls!).getByRole('button', { name: '+' });
-    const decreaseButton = within(numTrialsControls!).getByRole('button', { name: '-' });
+    const numTrialsControls = screen.getByText("Number of Trials").closest("div");
+    const increaseButton = within(numTrialsControls!).getByRole("button", { name: "+" });
+    const decreaseButton = within(numTrialsControls!).getByRole("button", { name: "-" });
 
     await user.click(increaseButton);
     expect(mockSetNumTrials).toHaveBeenCalledTimes(1);
@@ -92,11 +94,11 @@ describe('GameSetupScreen Component', () => {
     expect(mockSetNumTrials).toHaveBeenCalledTimes(2);
   });
 
-  it('calls setStimulusDurationMs when Stimulus Duration buttons are clicked', async () => {
+  it("calls setStimulusDurationMs when Stimulus Duration buttons are clicked", async () => {
     render(<GameSetupScreen {...defaultProps} stimulusDurationMs={3000} />);
-    const stimulusDurationControls = screen.getByText('Stimulus Duration').closest('div');
-    const increaseButton = within(stimulusDurationControls!).getByRole('button', { name: '+' });
-    const decreaseButton = within(stimulusDurationControls!).getByRole('button', { name: '-' });
+    const stimulusDurationControls = screen.getByText("Stimulus Duration").closest("div");
+    const increaseButton = within(stimulusDurationControls!).getByRole("button", { name: "+" });
+    const decreaseButton = within(stimulusDurationControls!).getByRole("button", { name: "-" });
 
     await user.click(increaseButton);
     expect(mockSetStimulusDurationMs).toHaveBeenCalledTimes(1);
@@ -104,19 +106,19 @@ describe('GameSetupScreen Component', () => {
     expect(mockSetStimulusDurationMs).toHaveBeenCalledTimes(2);
   });
 
-  it('calls setAudioEnabled when audio toggle button is clicked', async () => {
+  it("calls setAudioEnabled when audio toggle button is clicked", async () => {
     render(<GameSetupScreen {...defaultProps} audioEnabled={true} />);
-    await user.click(screen.getByRole('button', { name: /Audio On/i }));
+    await user.click(screen.getByRole("button", { name: /Audio On/i }));
     expect(mockSetAudioEnabled).toHaveBeenCalledTimes(1);
   });
 
   it('calls onStartGame when "Start Training Session" button is clicked', async () => {
     render(<GameSetupScreen {...defaultProps} />);
-    await user.click(screen.getByRole('button', { name: /Start Training Session/i }));
+    await user.click(screen.getByRole("button", { name: /Start Training Session/i }));
     expect(mockOnStartGame).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render if isPracticeMode is true', () => {
+  it("does not render if isPracticeMode is true", () => {
     const { container } = render(<GameSetupScreen {...defaultProps} isPracticeMode={true} />);
     expect(container.firstChild).toBeNull();
   });

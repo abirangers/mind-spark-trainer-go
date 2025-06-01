@@ -1,23 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useSettingsStore } from '@/stores/settingsStore'; // Added import
-import { useStimulusGeneration } from '@/hooks/game/useStimulusGeneration';
-import { useGameLogic } from '@/hooks/game/useGameLogic';
-import { useTrialManagement } from '@/hooks/game/useTrialManagement';
-import { GameSetupScreen } from './game/GameSetupScreen';
-import { PlayingScreen } from './game/PlayingScreen';
-import { ResultsScreen } from './game/ResultsScreen';
+import { useSettingsStore } from "@/stores/settingsStore"; // Added import
+import { useStimulusGeneration } from "@/hooks/game/useStimulusGeneration";
+import { useGameLogic } from "@/hooks/game/useGameLogic";
+import { useTrialManagement } from "@/hooks/game/useTrialManagement";
+import { GameSetupScreen } from "./game/GameSetupScreen";
+import { PlayingScreen } from "./game/PlayingScreen";
+import { ResultsScreen } from "./game/ResultsScreen";
 
 interface GameInterfaceProps {
   onBack: () => void;
   onViewStats: () => void;
-  isPracticeMode?: boolean;     // New prop
+  isPracticeMode?: boolean; // New prop
   onPracticeComplete?: () => void; // New prop
 }
 
-type GameMode = 'single-visual' | 'single-audio' | 'dual';
-type GameState = 'setup' | 'playing' | 'paused' | 'results';
+type GameMode = "single-visual" | "single-audio" | "dual";
+type GameState = "setup" | "playing" | "paused" | "results";
 
 interface GameSession {
   trials: number;
@@ -43,23 +43,24 @@ interface GameSession {
   audioCorrectRejections?: number;
 }
 
-const PRACTICE_MODE = 'single-visual' as GameMode;
+const PRACTICE_MODE = "single-visual" as GameMode;
 const PRACTICE_N_LEVEL = 1; // 1-Back for practice
 const PRACTICE_NUM_TRIALS = 7; // Short session
 
-const GameInterface = ({ 
-  onBack, 
-  onViewStats, 
-  isPracticeMode = false, 
-  onPracticeComplete 
+const GameInterface = ({
+  onBack,
+  onViewStats,
+  isPracticeMode = false,
+  onPracticeComplete,
 }: GameInterfaceProps) => {
   const [audioEnabled, setAudioEnabled] = useState(true); // audioEnabled still managed here for now
-  
+
   // Game state (stimulus display, user responses - to be moved or managed by useTrialManagement)
-  
+
   // Refs moved to useTrialManagement or useStimulusGeneration
-  
-  const isAdaptiveDifficultyEnabled = useSettingsStore( // Access store state
+
+  const isAdaptiveDifficultyEnabled = useSettingsStore(
+    // Access store state
     (state) => state.isAdaptiveDifficultyEnabled
   );
 
@@ -73,7 +74,7 @@ const GameInterface = ({
   //    Provides trial execution state, response handling, and current trial data.
 
   const gameLogic = useGameLogic({
-    initialGameMode: isPracticeMode ? PRACTICE_MODE : 'single-visual',
+    initialGameMode: isPracticeMode ? PRACTICE_MODE : "single-visual",
     initialNLevel: isPracticeMode ? PRACTICE_N_LEVEL : 2,
     initialNumTrials: isPracticeMode ? PRACTICE_NUM_TRIALS : 20,
     isPracticeMode,
@@ -110,27 +111,48 @@ const GameInterface = ({
 
   // Destructure for easier use in JSX and other logic
   const {
-    gameMode, setGameMode, gameState, setGameState, nLevel, setNLevel,
-    numTrials, setNumTrials, startGame, resetGame
+    gameMode,
+    setGameMode,
+    gameState,
+    setGameState,
+    nLevel,
+    setNLevel,
+    numTrials,
+    setNumTrials,
+    startGame,
+    resetGame,
     // Removed PRACTICE_MODE etc. if not used directly by GameInterface JSX
   } = gameLogic;
 
   const {
-    visualSequence, audioSequence, visualMatches, audioMatches, // visualMatches & audioMatches are used by gameLogic
-    generateStimulus, playAudioLetter, resetStimulusSequences   // generate/play/reset are used by trialM
+    visualSequence,
+    audioSequence,
+    visualMatches,
+    audioMatches, // visualMatches & audioMatches are used by gameLogic
+    generateStimulus,
+    playAudioLetter,
+    resetStimulusSequences, // generate/play/reset are used by trialM
   } = stimulusG;
 
   const {
-    currentTrial, stimulusDurationMs, setStimulusDurationMs, // stimulusDurationMs state for setup screen
-    currentPosition, currentLetter, isWaitingForResponse,
-    handleResponse, initiateFirstTrial, resetTrialStates,
-    visualResponseMadeThisTrial, audioResponseMadeThisTrial,
+    currentTrial,
+    stimulusDurationMs,
+    setStimulusDurationMs, // stimulusDurationMs state for setup screen
+    currentPosition,
+    currentLetter,
+    isWaitingForResponse,
+    handleResponse,
+    initiateFirstTrial,
+    resetTrialStates,
+    visualResponseMadeThisTrial,
+    audioResponseMadeThisTrial,
     // userVisualResponses, userAudioResponses, responseTimes // These are primarily for gameLogic's endSession
   } = trialM;
 
   // Effect to bridge startGame from useGameLogic to initiateFirstTrial from useTrialManagement
   useEffect(() => {
-    if (gameState === 'playing' && currentTrial === 0) { // Assuming game starts at trial 0
+    if (gameState === "playing" && currentTrial === 0) {
+      // Assuming game starts at trial 0
       // Check if this is the actual start of playing, not a resume or other state change.
       // useGameLogic's startGame sets gameState to 'playing'.
       // useTrialManagement's initiateFirstTrial resets currentTrial to 0 and starts.
@@ -146,12 +168,12 @@ const GameInterface = ({
   // are intended to be moved to useGameLogic. For now, they are commented out below or removed.
   // The new `startGame` and `resetGame` from `useGameLogic` should be used.
 
-    // ...
+  // ...
 
   // const endSession = useCallback(() => { // MOVED TO useGameLogic
-    // Entire body of endSession is now in useGameLogic.
-    // GameInterface will rely on gameState from useGameLogic to switch to 'results' screen.
-    // Stats display on results screen will also use data ultimately derived from hook states.
+  // Entire body of endSession is now in useGameLogic.
+  // GameInterface will rely on gameState from useGameLogic to switch to 'results' screen.
+  // Stats display on results screen will also use data ultimately derived from hook states.
   // }, [ /* Dependencies are now managed within useGameLogic */ ]);
 
   // const handleTrialTimeout = useCallback(() => { ... }); // Already commented
@@ -159,133 +181,139 @@ const GameInterface = ({
   // const startTrial = useCallback(() => { ... }); // Already commented
 
   // useEffect(() => { ... }); // Already commented
-  
+
   // const handleResponse = useCallback((responseType: 'visual' | 'audio') => {
-    // if (!isWaitingForResponse) return;
-    
-    // const responseTime = Date.now() - trialStartTime;
-    // setResponseTimes(prev => [...prev, responseTime]);
-    
-    // const trialIndexToUpdate = currentTrial;
+  // if (!isWaitingForResponse) return;
 
-    // let currentVisualResponseMade = visualResponseMadeThisTrial;
-    // let currentAudioResponseMade = audioResponseMadeThisTrial;
-    // let visualUserRespondedLate = false; // To track if this is a late response for visual
+  // const responseTime = Date.now() - trialStartTime;
+  // setResponseTimes(prev => [...prev, responseTime]);
 
-    // if (responseType === 'visual') {
-      // visualUserRespondedLate = userVisualResponses[trialIndexToUpdate];
-      // setUserVisualResponses(prevResponses => {
-        // const newResponses = [...prevResponses];
-        // if (trialIndexToUpdate < newResponses.length) {
-          // newResponses[trialIndexToUpdate] = true;
-        // }
-        // return newResponses;
-      // });
-      // setVisualResponseMadeThisTrial(true);
-      // currentVisualResponseMade = true;
-    // } else { // responseType === 'audio'
-      // setUserAudioResponses(prevResponses => {
-        // const newResponses = [...prevResponses];
-        // if (trialIndexToUpdate < newResponses.length) {
-          // newResponses[trialIndexToUpdate] = true;
-        // }
-        // return newResponses;
-      // });
-      // setAudioResponseMadeThisTrial(true);
-      // currentAudioResponseMade = true;
-    // }
+  // const trialIndexToUpdate = currentTrial;
 
-    // if (isPracticeMode && responseType === 'visual' && !visualUserRespondedLate) {
-      // const visualExpected = visualMatches[trialIndexToUpdate];
-      // const visualResponse = true;
+  // let currentVisualResponseMade = visualResponseMadeThisTrial;
+  // let currentAudioResponseMade = audioResponseMadeThisTrial;
+  // let visualUserRespondedLate = false; // To track if this is a late response for visual
 
-      // if (visualExpected && visualResponse) {
-        // toast.success("Correct Match!", { duration: 1500 });
-      // } else if (!visualExpected && visualResponse) {
-        // toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
-      // }
-    // }
-    
-    // const performTrialAdvancement = () => {
-      // setCurrentPosition(null);
-      // setCurrentLetter('');
-      // setCurrentTrial(prev => {
-        // const next = prev + 1;
-        // if (next < numTrials) {
-          // setTimeout(() => startTrialRef.current?.(), 1000);
-        // }
-        // return next;
-      // });
-    // };
+  // if (responseType === 'visual') {
+  // visualUserRespondedLate = userVisualResponses[trialIndexToUpdate];
+  // setUserVisualResponses(prevResponses => {
+  // const newResponses = [...prevResponses];
+  // if (trialIndexToUpdate < newResponses.length) {
+  // newResponses[trialIndexToUpdate] = true;
+  // }
+  // return newResponses;
+  // });
+  // setVisualResponseMadeThisTrial(true);
+  // currentVisualResponseMade = true;
+  // } else { // responseType === 'audio'
+  // setUserAudioResponses(prevResponses => {
+  // const newResponses = [...prevResponses];
+  // if (trialIndexToUpdate < newResponses.length) {
+  // newResponses[trialIndexToUpdate] = true;
+  // }
+  // return newResponses;
+  // });
+  // setAudioResponseMadeThisTrial(true);
+  // currentAudioResponseMade = true;
+  // }
 
-    // if (gameMode === 'dual') {
-      // if (currentVisualResponseMade && currentAudioResponseMade) {
-        // setIsWaitingForResponse(false);
-        // if (trialTimeoutRef.current) {
-          // clearTimeout(trialTimeoutRef.current);
-        // }
-        // postDualResponseDelayRef.current = setTimeout(() => {
-          // performTrialAdvancement();
-        // }, 750);
-      // }
-    // } else {
-      // setIsWaitingForResponse(false);
-      // if (trialTimeoutRef.current) {
-        // clearTimeout(trialTimeoutRef.current);
-      // }
-      // performTrialAdvancement();
-    // }
+  // if (isPracticeMode && responseType === 'visual' && !visualUserRespondedLate) {
+  // const visualExpected = visualMatches[trialIndexToUpdate];
+  // const visualResponse = true;
+
+  // if (visualExpected && visualResponse) {
+  // toast.success("Correct Match!", { duration: 1500 });
+  // } else if (!visualExpected && visualResponse) {
+  // toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
+  // }
+  // }
+
+  // const performTrialAdvancement = () => {
+  // setCurrentPosition(null);
+  // setCurrentLetter('');
+  // setCurrentTrial(prev => {
+  // const next = prev + 1;
+  // if (next < numTrials) {
+  // setTimeout(() => startTrialRef.current?.(), 1000);
+  // }
+  // return next;
+  // });
+  // };
+
+  // if (gameMode === 'dual') {
+  // if (currentVisualResponseMade && currentAudioResponseMade) {
+  // setIsWaitingForResponse(false);
+  // if (trialTimeoutRef.current) {
+  // clearTimeout(trialTimeoutRef.current);
+  // }
+  // postDualResponseDelayRef.current = setTimeout(() => {
+  // performTrialAdvancement();
+  // }, 750);
+  // }
+  // } else {
+  // setIsWaitingForResponse(false);
+  // if (trialTimeoutRef.current) {
+  // clearTimeout(trialTimeoutRef.current);
+  // }
+  // performTrialAdvancement();
+  // }
   // }, [
-    // isWaitingForResponse,
-    // trialStartTime,
-    // numTrials,
-    // endSession, // Old endSession
-    // gameMode,
-    // currentTrial,
-    // visualResponseMadeThisTrial,
-    // audioResponseMadeThisTrial,
-    // isPracticeMode,
-    // visualMatches,
-    // userVisualResponses
+  // isWaitingForResponse,
+  // trialStartTime,
+  // numTrials,
+  // endSession, // Old endSession
+  // gameMode,
+  // currentTrial,
+  // visualResponseMadeThisTrial,
+  // audioResponseMadeThisTrial,
+  // isPracticeMode,
+  // visualMatches,
+  // userVisualResponses
   // ]);
 
   // useEffect(() => {
-    // if (gameState === 'playing' && currentTrial === numTrials) {
-      // endSession(); // Old endSession
-    // }
+  // if (gameState === 'playing' && currentTrial === numTrials) {
+  // endSession(); // Old endSession
+  // }
   // }, [gameState, currentTrial, numTrials, endSession]);
 
   // Add keyboard event listener (will be part of useTrialManagement or similar)
   // The handleResponse function it calls is already commented out.
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (gameState === 'playing' && isWaitingForResponse) {
-        if (event.key.toLowerCase() === 'a' && (gameMode === 'single-visual' || gameMode === 'dual')) {
+      if (gameState === "playing" && isWaitingForResponse) {
+        if (
+          event.key.toLowerCase() === "a" &&
+          (gameMode === "single-visual" || gameMode === "dual")
+        ) {
           // handleResponse('visual'); // Old handleResponse
-        } else if (event.key.toLowerCase() === 'l' && (gameMode === 'single-audio' || gameMode === 'dual')) {
+        } else if (
+          event.key.toLowerCase() === "l" &&
+          (gameMode === "single-audio" || gameMode === "dual")
+        ) {
           // handleResponse('audio'); // Old handleResponse
         }
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  // }, [gameState, isWaitingForResponse, gameMode, handleResponse]); // handleResponse is commented out
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+    // }, [gameState, isWaitingForResponse, gameMode, handleResponse]); // handleResponse is commented out
   }, [gameState, isWaitingForResponse, gameMode]); // Removed handleResponse from deps
 
   // const startGame = useCallback(() => {
-    // setGameState('playing'); // Should use setGameState from useGameLogic
-    // setCurrentTrial(0);
-    // resetStimulusSequences();
-    // setUserVisualResponses(Array(numTrials).fill(false));
-    // setUserAudioResponses(Array(numTrials).fill(false));
-    // setResponseTimes([]);
-    // setTimeout(() => startTrialRef.current?.(), 100);
+  // setGameState('playing'); // Should use setGameState from useGameLogic
+  // setCurrentTrial(0);
+  // resetStimulusSequences();
+  // setUserVisualResponses(Array(numTrials).fill(false));
+  // setUserAudioResponses(Array(numTrials).fill(false));
+  // setResponseTimes([]);
+  // setTimeout(() => startTrialRef.current?.(), 100);
   // }, [
-    // setGameState, setCurrentTrial, resetStimulusSequences,
-    // setUserVisualResponses, setUserAudioResponses,
-    // setResponseTimes, numTrials,
-    // startTrial // This was the temporary startTrial in GameInterface
+  // setGameState, setCurrentTrial, resetStimulusSequences,
+  // setUserVisualResponses, setUserAudioResponses,
+  // setResponseTimes, numTrials,
+  // startTrial // This was the temporary startTrial in GameInterface
   // ]);
 
   // useEffect(() => { ... }); // Already commented (auto-start practice)
@@ -304,9 +332,9 @@ const GameInterface = ({
     }
   };
 
-  if (gameState === 'setup') {
+  if (gameState === "setup") {
     if (isPracticeMode) {
-      return null; 
+      return null;
     }
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
@@ -328,25 +356,41 @@ const GameInterface = ({
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   {[
-                    { mode: 'single-visual' as const, title: 'Single N-Back (Visual)', desc: 'Remember visual positions only' },
-                    { mode: 'single-audio' as const, title: 'Single N-Back (Audio)', desc: 'Remember audio letters only' },
-                    { mode: 'dual' as const, title: 'Dual N-Back', desc: 'Remember both visual and audio stimuli' }
-                  ].map(({ mode: itemMode, title, desc }) => ( // Renamed mode to itemMode to avoid conflict with gameMode from hook
-                    <div 
-                      key={itemMode}
-                      className={`p-4 border-2 rounded-lg transition-all ${
-                        gameMode === itemMode ? 'border-blue-500 bg-blue-50' : 'border-gray-200' // Use gameMode from hook
-                      } ${isPracticeMode ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:border-gray-300'}`}
-                      onClick={() => {
-                        if (!isPracticeMode) {
-                          setGameMode(itemMode); // Use setGameMode from hook
-                        }
-                      }}
-                    >
-                      <div className="font-semibold">{title}</div>
-                      <div className="text-sm text-gray-600">{desc}</div>
-                    </div>
-                  ))}
+                    {
+                      mode: "single-visual" as const,
+                      title: "Single N-Back (Visual)",
+                      desc: "Remember visual positions only",
+                    },
+                    {
+                      mode: "single-audio" as const,
+                      title: "Single N-Back (Audio)",
+                      desc: "Remember audio letters only",
+                    },
+                    {
+                      mode: "dual" as const,
+                      title: "Dual N-Back",
+                      desc: "Remember both visual and audio stimuli",
+                    },
+                  ].map(
+                    (
+                      { mode: itemMode, title, desc } // Renamed mode to itemMode to avoid conflict with gameMode from hook
+                    ) => (
+                      <div
+                        key={itemMode}
+                        className={`p-4 border-2 rounded-lg transition-all ${
+                          gameMode === itemMode ? "border-blue-500 bg-blue-50" : "border-gray-200" // Use gameMode from hook
+                        } ${isPracticeMode ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-gray-300"}`}
+                        onClick={() => {
+                          if (!isPracticeMode) {
+                            setGameMode(itemMode); // Use setGameMode from hook
+                          }
+                        }}
+                      >
+                        <div className="font-semibold">{title}</div>
+                        <div className="text-sm text-gray-600">{desc}</div>
+                      </div>
+                    )
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -360,10 +404,10 @@ const GameInterface = ({
                 <div>
                   <label className="block text-sm font-medium mb-2">N-Level (Difficulty)</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => setNLevel(prev => Math.max(1, prev - 1))} // Use setNLevel from hook
+                      onClick={() => setNLevel((prev) => Math.max(1, prev - 1))} // Use setNLevel from hook
                       disabled={isPracticeMode || nLevel <= 1} // Use nLevel from hook
                     >
                       -
@@ -371,51 +415,53 @@ const GameInterface = ({
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
                       {nLevel}-Back
                     </Badge>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => setNLevel(prev => Math.min(8, prev + 1))} // Use setNLevel from hook
+                      onClick={() => setNLevel((prev) => Math.min(8, prev + 1))} // Use setNLevel from hook
                       disabled={isPracticeMode || nLevel >= 8} // Use nLevel from hook
                     >
                       +
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Higher N-levels are more challenging
-                  </p>
+                  <p className="text-sm text-gray-600 mt-2">Higher N-levels are more challenging</p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Number of Trials</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setNumTrials(prev => Math.max(10, prev - 5))} // Use setNumTrials from hook
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNumTrials((prev) => Math.max(10, prev - 5))} // Use setNumTrials from hook
                       disabled={isPracticeMode || numTrials <= 10} // Use numTrials from hook
                     >
                       -
                     </Button>
-                    <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">{numTrials}</Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setNumTrials(prev => Math.min(50, prev + 5))} // Use setNumTrials from hook
+                    <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
+                      {numTrials}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNumTrials((prev) => Math.min(50, prev + 5))} // Use setNumTrials from hook
                       disabled={isPracticeMode || numTrials >= 50} // Use numTrials from hook
                     >
                       +
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">Adjust the total trials per session (10-50).</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Adjust the total trials per session (10-50).
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Stimulus Duration</label>
                   <div className="flex items-center gap-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setStimulusDurationMs(prev => Math.max(2000, prev - 500))} // Use setStimulusDurationMs from trialM hook
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStimulusDurationMs((prev) => Math.max(2000, prev - 500))} // Use setStimulusDurationMs from trialM hook
                       disabled={isPracticeMode || stimulusDurationMs <= 2000} // Use stimulusDurationMs from trialM hook
                     >
                       -
@@ -423,35 +469,48 @@ const GameInterface = ({
                     <Badge variant="secondary" className="px-4 py-2 text-lg font-bold">
                       {(stimulusDurationMs / 1000).toFixed(1)}s
                     </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setStimulusDurationMs(prev => Math.min(4000, prev + 500))} // Use setStimulusDurationMs from trialM hook
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setStimulusDurationMs((prev) => Math.min(4000, prev + 500))} // Use setStimulusDurationMs from trialM hook
                       disabled={isPracticeMode || stimulusDurationMs >= 4000} // Use stimulusDurationMs from trialM hook
                     >
                       +
                     </Button>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">Time each stimulus is shown (2.0s - 4.0s).</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Time each stimulus is shown (2.0s - 4.0s).
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2">Audio Settings</label>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setAudioEnabled(!audioEnabled)} // audioEnabled is still local state
                     className="gap-2"
                   >
-                    {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                    {audioEnabled ? 'Audio On' : 'Audio Off'}
+                    {audioEnabled ? (
+                      <Volume2 className="h-4 w-4" />
+                    ) : (
+                      <VolumeX className="h-4 w-4" />
+                    )}
+                    {audioEnabled ? "Audio On" : "Audio Off"}
                   </Button>
                 </div>
 
                 <div className="pt-4 border-t">
                   <div className="text-sm text-gray-600 space-y-1">
                     <div>• Trials: {numTrials}</div> {/* From gameLogic hook */}
-                    <div>• Duration: ~{Math.ceil(numTrials * (stimulusDurationMs / 1000 + 1) / 60)} minutes</div> {/* numTrials from gameLogic, stimulusDurationMs from trialM */}
-                    <div>• Mode: {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</div> {/* From gameLogic hook */}
+                    <div>
+                      • Duration: ~{Math.ceil((numTrials * (stimulusDurationMs / 1000 + 1)) / 60)}{" "}
+                      minutes
+                    </div>{" "}
+                    {/* numTrials from gameLogic, stimulusDurationMs from trialM */}
+                    <div>
+                      • Mode: {gameMode.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </div>{" "}
+                    {/* From gameLogic hook */}
                   </div>
                 </div>
 
@@ -468,8 +527,8 @@ const GameInterface = ({
           </div>
 
           <div className="flex justify-center mt-8">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={startGame} // startGame from useGameLogic hook
               className="bg-blue-600 hover:bg-blue-700 px-8 py-4 text-lg gap-2"
             >
@@ -482,37 +541,48 @@ const GameInterface = ({
     );
   }
 
-  if (gameState === 'playing') { // gameState from useGameLogic
+  if (gameState === "playing") {
+    // gameState from useGameLogic
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
         <div className="container mx-auto max-w-4xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={handleResetGame} className="gap-2"> {/* handleResetGame is local, calls resetGame from hook */}
+              <Button variant="outline" onClick={handleResetGame} className="gap-2">
+                {" "}
+                {/* handleResetGame is local, calls resetGame from hook */}
                 <Pause className="h-4 w-4" />
                 Pause
               </Button>
               <Badge variant="secondary" className="px-3 py-1">
-                {nLevel}-Back {gameMode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} {/* nLevel, gameMode from useGameLogic */}
+                {nLevel}-Back {gameMode.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}{" "}
+                {/* nLevel, gameMode from useGameLogic */}
               </Badge>
             </div>
             <div className="text-right">
               <div className="text-sm text-gray-600">Trial</div>
-              <div className="text-2xl font-bold">{currentTrial + 1} / {numTrials}</div> {/* currentTrial from trialM, numTrials from gameLogic */}
+              <div className="text-2xl font-bold">
+                {currentTrial + 1} / {numTrials}
+              </div>{" "}
+              {/* currentTrial from trialM, numTrials from gameLogic */}
             </div>
           </div>
 
           {/* Progress */}
           <div className="mb-8">
-            <Progress value={(numTrials > 0 ? (currentTrial / numTrials) * 100 : 0)} className="h-2" /> {/* currentTrial from trialM, numTrials from gameLogic */}
+            <Progress
+              value={numTrials > 0 ? (currentTrial / numTrials) * 100 : 0}
+              className="h-2"
+            />{" "}
+            {/* currentTrial from trialM, numTrials from gameLogic */}
           </div>
 
           {/* Game Area */}
           <div className="bg-white rounded-lg p-8 mb-8 shadow-lg">
             <div className="space-y-8">
               {/* Visual Grid */}
-              {(gameMode === 'single-visual' || gameMode === 'dual') && ( // gameMode from useGameLogic
+              {(gameMode === "single-visual" || gameMode === "dual") && ( // gameMode from useGameLogic
                 <div className="text-center">
                   <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
                     {[...Array(9)].map((_, index) => (
@@ -520,8 +590,8 @@ const GameInterface = ({
                         key={index}
                         className={`w-20 h-20 border-2 rounded-lg transition-all duration-200 ${
                           currentPosition === index // currentPosition from trialM
-                            ? 'bg-blue-500 border-blue-400 shadow-lg'
-                            : 'bg-gray-100 border-gray-300'
+                            ? "bg-blue-500 border-blue-400 shadow-lg"
+                            : "bg-gray-100 border-gray-300"
                         }`}
                       />
                     ))}
@@ -530,41 +600,47 @@ const GameInterface = ({
               )}
 
               {/* Audio Display */}
-              {(gameMode === 'single-audio' || gameMode === 'dual') && ( // gameMode from useGameLogic
+              {(gameMode === "single-audio" || gameMode === "dual") && ( // gameMode from useGameLogic
                 <div className="text-center">
-                  <div className={`text-6xl font-bold transition-all duration-200 ${
-                    currentLetter ? 'text-blue-600' : 'text-gray-400' // currentLetter from trialM
-                  }`}>
-                    {currentLetter || '?'}
+                  <div
+                    className={`text-6xl font-bold transition-all duration-200 ${
+                      currentLetter ? "text-blue-600" : "text-gray-400" // currentLetter from trialM
+                    }`}
+                  >
+                    {currentLetter || "?"}
                   </div>
                 </div>
               )}
 
               {/* Response Buttons */}
               <div className="flex gap-4 justify-center pt-8">
-                {(gameMode === 'single-visual' || gameMode === 'dual') && ( // gameMode from useGameLogic
-                  <button 
-                    onClick={() => handleResponse('visual')} // handleResponse from trialM
+                {(gameMode === "single-visual" || gameMode === "dual") && ( // gameMode from useGameLogic
+                  <button
+                    onClick={() => handleResponse("visual")} // handleResponse from trialM
                     disabled={!isWaitingForResponse} // isWaitingForResponse from trialM
                     className={`
-                      ${(gameMode === 'dual' && visualResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} // visualResponseMadeThisTrial from trialM
+                      ${gameMode === "dual" && visualResponseMadeThisTrial ? "bg-blue-800" : "bg-blue-600"} // visualResponseMadeThisTrial from trialM
                       hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
                     `}
                   >
-                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">A</span>
+                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">
+                      A
+                    </span>
                     Position Match
                   </button>
                 )}
-                {(gameMode === 'single-audio' || gameMode === 'dual') && ( // gameMode from useGameLogic
-                  <button 
-                    onClick={() => handleResponse('audio')} // handleResponse from trialM
+                {(gameMode === "single-audio" || gameMode === "dual") && ( // gameMode from useGameLogic
+                  <button
+                    onClick={() => handleResponse("audio")} // handleResponse from trialM
                     disabled={!isWaitingForResponse} // isWaitingForResponse from trialM
                     className={`
-                      ${(gameMode === 'dual' && audioResponseMadeThisTrial) ? 'bg-blue-800' : 'bg-blue-600'} // audioResponseMadeThisTrial from trialM
+                      ${gameMode === "dual" && audioResponseMadeThisTrial ? "bg-blue-800" : "bg-blue-600"} // audioResponseMadeThisTrial from trialM
                       hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 min-w-[140px]
                     `}
                   >
-                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">L</span>
+                    <span className="w-5 h-5 bg-white/20 rounded flex items-center justify-center text-xs font-bold">
+                      L
+                    </span>
                     Sound Match
                   </button>
                 )}
@@ -572,12 +648,16 @@ const GameInterface = ({
 
               {isWaitingForResponse && ( // isWaitingForResponse from trialM
                 <div className="text-center space-y-2">
-                  <p className="text-gray-600 text-sm">Press when current stimulus matches {nLevel} steps back</p> {/* nLevel from gameLogic */}
+                  <p className="text-gray-600 text-sm">
+                    Press when current stimulus matches {nLevel} steps back
+                  </p>{" "}
+                  {/* nLevel from gameLogic */}
                   <p className="text-gray-500 text-xs">
-                    Keyboard shortcuts: 
-                    {(gameMode === 'single-visual' || gameMode === 'dual') && ' A for Position Match'}
-                    {gameMode === 'dual' && ' • '}
-                    {(gameMode === 'single-audio' || gameMode === 'dual') && ' L for Sound Match'}
+                    Keyboard shortcuts:
+                    {(gameMode === "single-visual" || gameMode === "dual") &&
+                      " A for Position Match"}
+                    {gameMode === "dual" && " • "}
+                    {(gameMode === "single-audio" || gameMode === "dual") && " L for Sound Match"}
                   </p>
                 </div>
               )}
@@ -588,8 +668,9 @@ const GameInterface = ({
     );
   }
 
-  if (gameState === 'results') { // gameState from useGameLogic
-    const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]');
+  if (gameState === "results") {
+    // gameState from useGameLogic
+    const sessions = JSON.parse(localStorage.getItem("nback-sessions") || "[]");
     const lastSession = sessions[sessions.length - 1];
 
     return (
@@ -603,13 +684,17 @@ const GameInterface = ({
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <Card className="text-center shadow-lg">
               <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-blue-600">{lastSession?.accuracy.toFixed(1)}%</div>
+                <div className="text-3xl font-bold text-blue-600">
+                  {lastSession?.accuracy.toFixed(1)}%
+                </div>
                 <div className="text-sm text-gray-600">Overall Accuracy</div>
               </CardContent>
             </Card>
             <Card className="text-center shadow-lg">
               <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-green-600">{lastSession?.averageResponseTime.toFixed(0)}ms</div>
+                <div className="text-3xl font-bold text-green-600">
+                  {lastSession?.averageResponseTime.toFixed(0)}ms
+                </div>
                 <div className="text-sm text-gray-600">Avg Response Time</div>
               </CardContent>
             </Card>
@@ -623,32 +708,80 @@ const GameInterface = ({
 
           {/* Detailed Performance Counts */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {(lastSession?.mode === 'single-visual' || lastSession?.mode === 'dual') && (
+            {(lastSession?.mode === "single-visual" || lastSession?.mode === "dual") && (
               <Card className="text-center shadow-lg">
                 <CardHeader>
                   <CardTitle>Detailed Visual Performance</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-2 space-y-1 text-sm text-left">
-                  <p>Actual Visual Matches: <span className="font-semibold">{lastSession.actualVisualMatches ?? 'N/A'}</span></p>
-                  <p>Visual Hits (Correctly Pressed): <span className="text-green-600 font-semibold">{lastSession.visualHits ?? 'N/A'}</span></p>
-                  <p>Visual Misses (Not Pressed for Match): <span className="text-red-600 font-semibold">{lastSession.visualMisses ?? 'N/A'}</span></p>
-                  <p>Visual False Alarms (Pressed for Non-Match): <span className="text-orange-600 font-semibold">{lastSession.visualFalseAlarms ?? 'N/A'}</span></p>
-                  <p>Visual Correct Rejections (Not Pressed for Non-Match): <span className="font-semibold">{lastSession.visualCorrectRejections ?? 'N/A'}</span></p>
+                  <p>
+                    Actual Visual Matches:{" "}
+                    <span className="font-semibold">
+                      {lastSession.actualVisualMatches ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Visual Hits (Correctly Pressed):{" "}
+                    <span className="text-green-600 font-semibold">
+                      {lastSession.visualHits ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Visual Misses (Not Pressed for Match):{" "}
+                    <span className="text-red-600 font-semibold">
+                      {lastSession.visualMisses ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Visual False Alarms (Pressed for Non-Match):{" "}
+                    <span className="text-orange-600 font-semibold">
+                      {lastSession.visualFalseAlarms ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Visual Correct Rejections (Not Pressed for Non-Match):{" "}
+                    <span className="font-semibold">
+                      {lastSession.visualCorrectRejections ?? "N/A"}
+                    </span>
+                  </p>
                 </CardContent>
               </Card>
             )}
 
-            {(lastSession?.mode === 'single-audio' || lastSession?.mode === 'dual') && (
+            {(lastSession?.mode === "single-audio" || lastSession?.mode === "dual") && (
               <Card className="text-center shadow-lg">
                 <CardHeader>
                   <CardTitle>Detailed Audio Performance</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-2 space-y-1 text-sm text-left">
-                  <p>Actual Audio Matches: <span className="font-semibold">{lastSession.actualAudioMatches ?? 'N/A'}</span></p>
-                  <p>Audio Hits (Correctly Pressed): <span className="text-green-600 font-semibold">{lastSession.audioHits ?? 'N/A'}</span></p>
-                  <p>Audio Misses (Not Pressed for Match): <span className="text-red-600 font-semibold">{lastSession.audioMisses ?? 'N/A'}</span></p>
-                  <p>Audio False Alarms (Pressed for Non-Match): <span className="text-orange-600 font-semibold">{lastSession.audioFalseAlarms ?? 'N/A'}</span></p>
-                  <p>Audio Correct Rejections (Not Pressed for Non-Match): <span className="font-semibold">{lastSession.audioCorrectRejections ?? 'N/A'}</span></p>
+                  <p>
+                    Actual Audio Matches:{" "}
+                    <span className="font-semibold">{lastSession.actualAudioMatches ?? "N/A"}</span>
+                  </p>
+                  <p>
+                    Audio Hits (Correctly Pressed):{" "}
+                    <span className="text-green-600 font-semibold">
+                      {lastSession.audioHits ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Audio Misses (Not Pressed for Match):{" "}
+                    <span className="text-red-600 font-semibold">
+                      {lastSession.audioMisses ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Audio False Alarms (Pressed for Non-Match):{" "}
+                    <span className="text-orange-600 font-semibold">
+                      {lastSession.audioFalseAlarms ?? "N/A"}
+                    </span>
+                  </p>
+                  <p>
+                    Audio Correct Rejections (Not Pressed for Non-Match):{" "}
+                    <span className="font-semibold">
+                      {lastSession.audioCorrectRejections ?? "N/A"}
+                    </span>
+                  </p>
                 </CardContent>
               </Card>
             )}

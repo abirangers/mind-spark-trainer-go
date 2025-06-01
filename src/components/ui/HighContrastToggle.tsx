@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useSettingsStore } from '@/stores/settingsStore'; // Adjust path if store is elsewhere
+import { useSettingsStore } from "@/stores/settingsStore"; // Adjust path if store is elsewhere
 
 export const HighContrastToggle = () => {
   const isHighContrastMode = useSettingsStore((state) => state.isHighContrastMode);

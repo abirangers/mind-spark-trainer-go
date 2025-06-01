@@ -11,7 +11,12 @@ interface TrialManagementProps {
   isPracticeMode: boolean;
   // audioEnabled: boolean; // Not directly used here if playAudioLetter is from stimulus hook
   visualMatches: ReadonlyArray<boolean>;
-  generateStimulus: () => { newPosition: number; newLetter: string; visualMatch: boolean; audioMatch: boolean };
+  generateStimulus: () => {
+    newPosition: number;
+    newLetter: string;
+    visualMatch: boolean;
+    audioMatch: boolean;
+  };
   playAudioLetter: (letter: string) => void;
   onAllTrialsComplete: () => void;
 }
@@ -46,7 +51,7 @@ export const useTrialManagement = ({
   const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
 
   const advanceTrial = useCallback(() => {
-    setCurrentTrial(prev => {
+    setCurrentTrial((prev) => {
       const nextTrialIndex = prev + 1;
       if (nextTrialIndex < numTrials && startTrialFnRef.current) {
         setTimeout(() => startTrialFnRef.current?.(), 1000);
@@ -56,7 +61,8 @@ export const useTrialManagement = ({
   }, [numTrials]);
 
   const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode && currentTrial < visualMatches.length) { // Ensure visualMatches is populated
+    if (isPracticeMode && currentTrial < visualMatches.length) {
+      // Ensure visualMatches is populated
       const visualExpected = visualMatches[currentTrial];
       if (visualExpected) {
         toast.error("Missed Match!", { duration: 1500 });
@@ -69,7 +75,7 @@ export const useTrialManagement = ({
     setCurrentPosition(null);
     setCurrentLetter("");
 
-    setResponseTimes(prev => [...prev, stimulusDurationMs]);
+    setResponseTimes((prev) => [...prev, stimulusDurationMs]);
     advanceTrial();
   }, [isPracticeMode, currentTrial, visualMatches, stimulusDurationMs, advanceTrial]);
 
@@ -85,99 +91,121 @@ export const useTrialManagement = ({
     setIsWaitingForResponse(true);
     setTrialStartTime(Date.now());
 
-    if ((gameMode === "single-audio" || gameMode === "dual")) {
+    if (gameMode === "single-audio" || gameMode === "dual") {
       playAudioLetter(newLetter);
     }
 
     if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
     trialTimeoutRef.current = setTimeout(handleTrialTimeout, stimulusDurationMs);
-
   }, [
-    currentTrial, numTrials, generateStimulus, gameMode, playAudioLetter,
-    handleTrialTimeout, stimulusDurationMs
+    currentTrial,
+    numTrials,
+    generateStimulus,
+    gameMode,
+    playAudioLetter,
+    handleTrialTimeout,
+    stimulusDurationMs,
   ]);
 
   useEffect(() => {
     startTrialFnRef.current = startSingleTrialExecution;
   }, [startSingleTrialExecution]);
 
-  const handleResponse = useCallback((responseType: "visual" | "audio") => {
-    if (!isWaitingForResponse || currentTrial >= numTrials) return;
+  const handleResponse = useCallback(
+    (responseType: "visual" | "audio") => {
+      if (!isWaitingForResponse || currentTrial >= numTrials) return;
 
-    const responseTime = Date.now() - trialStartTime;
-    setResponseTimes(prev => [...prev, responseTime]);
+      const responseTime = Date.now() - trialStartTime;
+      setResponseTimes((prev) => [...prev, responseTime]);
 
-    const trialIndexToUpdate = currentTrial;
+      const trialIndexToUpdate = currentTrial;
 
-    let tempVisualResponseMade = visualResponseMadeThisTrial;
-    let tempAudioResponseMade = audioResponseMadeThisTrial;
+      let tempVisualResponseMade = visualResponseMadeThisTrial;
+      let tempAudioResponseMade = audioResponseMadeThisTrial;
 
-    if (responseType === "visual") {
-      if (!tempVisualResponseMade) { // Only process if not already responded for this type
-        setUserVisualResponses(prev => {
-          const newResponses = [...prev];
-          if (trialIndexToUpdate < newResponses.length) newResponses[trialIndexToUpdate] = true;
-          return newResponses;
-        });
-        setVisualResponseMadeThisTrial(true);
-        tempVisualResponseMade = true;
+      if (responseType === "visual") {
+        if (!tempVisualResponseMade) {
+          // Only process if not already responded for this type
+          setUserVisualResponses((prev) => {
+            const newResponses = [...prev];
+            if (trialIndexToUpdate < newResponses.length) newResponses[trialIndexToUpdate] = true;
+            return newResponses;
+          });
+          setVisualResponseMadeThisTrial(true);
+          tempVisualResponseMade = true;
+        }
+      } else {
+        if (!tempAudioResponseMade) {
+          // Only process if not already responded for this type
+          setUserAudioResponses((prev) => {
+            const newResponses = [...prev];
+            if (trialIndexToUpdate < newResponses.length) newResponses[trialIndexToUpdate] = true;
+            return newResponses;
+          });
+          setAudioResponseMadeThisTrial(true);
+          tempAudioResponseMade = true;
+        }
       }
-    } else {
-      if (!tempAudioResponseMade) { // Only process if not already responded for this type
-        setUserAudioResponses(prev => {
-          const newResponses = [...prev];
-          if (trialIndexToUpdate < newResponses.length) newResponses[trialIndexToUpdate] = true;
-          return newResponses;
-        });
-        setAudioResponseMadeThisTrial(true);
-        tempAudioResponseMade = true;
+
+      if (
+        isPracticeMode &&
+        responseType === "visual" &&
+        visualResponseMadeThisTrial &&
+        trialIndexToUpdate < visualMatches.length
+      ) {
+        // Feedback only on the first visual response for this trial in practice mode
+        const visualExpected = visualMatches[trialIndexToUpdate];
+        if (visualExpected) toast.success("Correct Match!", { duration: 1500 });
+        else toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
       }
-    }
 
-    if (isPracticeMode && responseType === "visual" && visualResponseMadeThisTrial && trialIndexToUpdate < visualMatches.length) {
-      // Feedback only on the first visual response for this trial in practice mode
-      const visualExpected = visualMatches[trialIndexToUpdate];
-      if (visualExpected) toast.success("Correct Match!", { duration: 1500 });
-      else toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
-    }
+      const performTrialAdvancement = () => {
+        setIsWaitingForResponse(false);
+        setCurrentPosition(null);
+        setCurrentLetter("");
+        advanceTrial();
+      };
 
-    const performTrialAdvancement = () => {
-      setIsWaitingForResponse(false);
-      setCurrentPosition(null);
-      setCurrentLetter("");
-      advanceTrial();
-    };
+      if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
 
-    if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
-
-    if (gameMode === "dual") {
-      if (tempVisualResponseMade && tempAudioResponseMade) { // Check using temp local vars for this call
-        if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
-        postDualResponseDelayRef.current = setTimeout(performTrialAdvancement, 750);
+      if (gameMode === "dual") {
+        if (tempVisualResponseMade && tempAudioResponseMade) {
+          // Check using temp local vars for this call
+          if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
+          postDualResponseDelayRef.current = setTimeout(performTrialAdvancement, 750);
+        }
+      } else {
+        performTrialAdvancement();
       }
-    } else {
-      performTrialAdvancement();
-    }
-  }, [
-    isWaitingForResponse, currentTrial, numTrials, trialStartTime, gameMode,
-    visualResponseMadeThisTrial, audioResponseMadeThisTrial,
-    isPracticeMode, visualMatches, advanceTrial
-  ]);
+    },
+    [
+      isWaitingForResponse,
+      currentTrial,
+      numTrials,
+      trialStartTime,
+      gameMode,
+      visualResponseMadeThisTrial,
+      audioResponseMadeThisTrial,
+      isPracticeMode,
+      visualMatches,
+      advanceTrial,
+    ]
+  );
 
   useEffect(() => {
     setUserVisualResponses(Array(numTrials).fill(false));
     setUserAudioResponses(Array(numTrials).fill(false));
     setResponseTimes([]);
     // setCurrentTrial(0); // Resetting currentTrial here could cause issues if numTrials changes mid-session
-                         // Better to reset currentTrial when a new game explicitly starts.
+    // Better to reset currentTrial when a new game explicitly starts.
   }, [numTrials]); // Only re-initialize if numTrials itself changes.
 
   useEffect(() => {
     if (currentTrial === numTrials && numTrials > 0) {
-        if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
-        if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
-        setIsWaitingForResponse(false);
-        onAllTrialsComplete();
+      if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
+      if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
+      setIsWaitingForResponse(false);
+      onAllTrialsComplete();
     }
   }, [currentTrial, numTrials, onAllTrialsComplete]);
 
@@ -204,7 +232,8 @@ export const useTrialManagement = ({
     }
   }, [numTrials]); // startSingleTrialExecution (via ref) is not needed as dep if ref itself is stable
 
-  const resetTrialStatesAndTimers = useCallback(() => { // Renamed for clarity
+  const resetTrialStatesAndTimers = useCallback(() => {
+    // Renamed for clarity
     if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);
     if (postDualResponseDelayRef.current) clearTimeout(postDualResponseDelayRef.current);
     // Don't reset currentTrial to 0 here, that's for starting a new game.
@@ -230,6 +259,6 @@ export const useTrialManagement = ({
     initiateFirstTrial,
     resetTrialStates: resetTrialStatesAndTimers, // Expose the renamed clearer function
     visualResponseMadeThisTrial,
-    audioResponseMadeThisTrial
+    audioResponseMadeThisTrial,
   };
 };

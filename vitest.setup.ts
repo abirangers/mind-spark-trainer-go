@@ -1,5 +1,5 @@
 // vitest.setup.ts
-import '@testing-library/jest-dom/vitest'; // Extends Vitest's expect with jest-dom matchers
+import "@testing-library/jest-dom/vitest"; // Extends Vitest's expect with jest-dom matchers
 // import '@testing-library/jest-dom'; // Alternative import if the above doesn't work, check docs
 
 // You can add other global setup here if needed, for example:
@@ -20,8 +20,8 @@ import '@testing-library/jest-dom/vitest'; // Extends Vitest's expect with jest-
 //     clear: () => {
 //       store = {};
 //     },
-    // length: Object.keys(store).length, // Add if needed
-    // key: (index: number) => Object.keys(store)[index] || null, // Add if needed
+// length: Object.keys(store).length, // Add if needed
+// key: (index: number) => Object.keys(store)[index] || null, // Add if needed
 //   };
 // })();
 // Object.defineProperty(window, 'localStorage', { value: localStorageMock });
@@ -41,4 +41,4 @@ import '@testing-library/jest-dom/vitest'; // Extends Vitest's expect with jest-
 //   })),
 // });
 
-console.log('Vitest setup file loaded.');
+console.log("Vitest setup file loaded.");

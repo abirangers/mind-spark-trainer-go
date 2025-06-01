@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSettingsStore } from '@/stores/settingsStore';
+import { useSettingsStore } from "@/stores/settingsStore";
 
 export const FontSizeSelector = () => {
   const fontSize = useSettingsStore((state) => state.fontSize);
@@ -14,7 +14,9 @@ export const FontSizeSelector = () => {
 
   return (
     <div className="flex items-center space-x-2">
-      <Label htmlFor="font-size-select" className="whitespace-nowrap">Font Size</Label>
+      <Label htmlFor="font-size-select" className="whitespace-nowrap">
+        Font Size
+      </Label>
       <Select value={fontSize} onValueChange={(value) => setFontSize(value)}>
         <SelectTrigger id="font-size-select" className="w-[140px]">
           <SelectValue placeholder="Select size" />
