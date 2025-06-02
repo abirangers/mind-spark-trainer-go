@@ -1,23 +1,22 @@
-
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, Brain, Eye, Ear, Target, CheckCircle } from "lucide-react";
-import VisualDemo1Back from './VisualDemo1Back';
-import AudioDemo1Back from './AudioDemo1Back'; // Added import
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ArrowLeft, ArrowRight, Brain, Eye, Ear, Target, CheckCircle } from 'lucide-react'
+import VisualDemo1Back from './VisualDemo1Back'
+import AudioDemo1Back from './AudioDemo1Back' // Added import
 
 interface TutorialProps {
-  onComplete: () => void;
-  onBack: () => void;
+  onComplete: () => void
+  onBack: () => void
 }
 
 const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0)
 
   const steps = [
     {
-      title: "Welcome to N-Back Training",
+      title: 'Welcome to N-Back Training',
       icon: Brain,
       content: (
         <div className="space-y-6">
@@ -27,11 +26,11 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </div>
             <h2 className="text-2xl font-bold mb-4">What is N-Back Training?</h2>
             <p className="text-gray-600 text-lg leading-relaxed">
-              N-Back is a scientifically validated cognitive training exercise that improves your working memory - 
-              the mental workspace where you hold and manipulate information.
+              N-Back is a scientifically validated cognitive training exercise that improves your
+              working memory - the mental workspace where you hold and manipulate information.
             </p>
           </div>
-          
+
           <div className="bg-blue-50 rounded-lg p-6">
             <h3 className="font-semibold text-lg mb-3">Key Benefits:</h3>
             <ul className="space-y-2 text-gray-700">
@@ -54,10 +53,10 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </ul>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: "Visual N-Back",
+      title: 'Visual N-Back',
       icon: Eye,
       content: (
         <div className="space-y-6">
@@ -67,11 +66,13 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </div>
             <h2 className="text-2xl font-bold mb-4">Visual Stimulus Training</h2>
             <p className="text-gray-600 text-lg mb-6">
-              Watch squares light up in different positions on a 3×3 grid. Your task is to remember 
+              Watch squares light up in different positions on a 3×3 grid. Your task is to remember
               the positions and identify when the current position matches one from N steps back.
             </p>
             <p className="text-gray-600 text-md mb-4">
-              Below is an automated demonstration of <strong>1-Back</strong>. Notice how "Match!" appears when the currently highlighted square is the same as the one highlighted immediately before it.
+              Below is an automated demonstration of <strong>1-Back</strong>. Notice how "Match!"
+              appears when the currently highlighted square is the same as the one highlighted
+              immediately before it.
             </p>
             <VisualDemo1Back />
           </div>
@@ -79,7 +80,9 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
           <div className="space-y-4">
             <div className="text-center">
               {/* Keeping the static 2-Back example for now, or it could be removed/adjusted */}
-              <Badge variant="secondary" className="mb-4">Static 2-Back Example</Badge>
+              <Badge variant="secondary" className="mb-4">
+                Static 2-Back Example
+              </Badge>
               <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto mb-4">
                 {[...Array(9)].map((_, index) => (
                   <div
@@ -90,9 +93,7 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
                   />
                 ))}
               </div>
-              <div className="text-sm text-gray-600">
-                Current position: Center
-              </div>
+              <div className="text-sm text-gray-600">Current position: Center</div>
             </div>
 
             <div className="bg-green-50 rounded-lg p-4">
@@ -106,10 +107,10 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: "Audio N-Back",
+      title: 'Audio N-Back',
       icon: Ear,
       content: (
         <div className="space-y-6">
@@ -119,25 +120,26 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </div>
             <h2 className="text-2xl font-bold mb-4">Audio Stimulus Training</h2>
             <p className="text-gray-600 text-lg mb-6">
-              Listen to letters spoken in sequence. Remember the audio sequence and identify 
-              when the current letter matches one from N steps back.
+              Listen to letters spoken in sequence. Remember the audio sequence and identify when
+              the current letter matches one from N steps back.
             </p>
             <p className="text-gray-600 text-md mb-4">
-              Below is a <strong>visual representation</strong> of an automated <strong>1-Back audio demo</strong>.
-              Imagine you are hearing these letters. "Match!" will appear when the current letter is the same as the one immediately before it.
+              Below is a <strong>visual representation</strong> of an automated{' '}
+              <strong>1-Back audio demo</strong>. Imagine you are hearing these letters. "Match!"
+              will appear when the current letter is the same as the one immediately before it.
             </p>
             <AudioDemo1Back />
           </div>
 
           <div className="space-y-4">
             <div className="text-center">
-              <Badge variant="secondary" className="mb-4">Static 2-Back Example</Badge>
+              <Badge variant="secondary" className="mb-4">
+                Static 2-Back Example
+              </Badge>
               <div className="bg-white border-2 border-gray-300 rounded-lg p-8 mb-4">
                 <div className="text-6xl font-bold text-orange-600">K</div>
               </div>
-              <div className="text-sm text-gray-600">
-                Current letter: K
-              </div>
+              <div className="text-sm text-gray-600">Current letter: K</div>
             </div>
 
             <div className="bg-orange-50 rounded-lg p-4">
@@ -157,10 +159,10 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: "Dual N-Back Challenge",
+      title: 'Dual N-Back Challenge',
       icon: Target,
       content: (
         <div className="space-y-6">
@@ -170,7 +172,7 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </div>
             <h2 className="text-2xl font-bold mb-4">The Ultimate Challenge</h2>
             <p className="text-gray-600 text-lg mb-6">
-              Dual N-Back combines both visual and audio stimuli simultaneously. This is the most 
+              Dual N-Back combines both visual and audio stimuli simultaneously. This is the most
               challenging and effective form of working memory training.
             </p>
           </div>
@@ -210,10 +212,10 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             </ul>
           </div>
         </div>
-      )
+      ),
     },
     {
-      title: "Training Tips & Strategy",
+      title: 'Training Tips & Strategy',
       icon: CheckCircle,
       content: (
         <div className="space-y-6">
@@ -276,19 +278,19 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6">
               <h3 className="text-xl font-bold mb-2">Ready to Begin Your Journey?</h3>
               <p className="opacity-90">
-                Remember: Improvement in working memory training is like physical fitness - 
-                it requires consistency and patience, but the results are worth it!
+                Remember: Improvement in working memory training is like physical fitness - it
+                requires consistency and patience, but the results are worth it!
               </p>
             </div>
           </div>
         </div>
-      )
-    }
-  ];
+      ),
+    },
+  ]
 
-  const currentStepData = steps[currentStep];
-  const isFirstStep = currentStep === 0;
-  const isLastStep = currentStep === steps.length - 1;
+  const currentStepData = steps[currentStep]
+  const isFirstStep = currentStep === 0
+  const isLastStep = currentStep === steps.length - 1
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
@@ -317,8 +319,8 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
                   index === currentStep
                     ? 'bg-blue-600 scale-125'
                     : index < currentStep
-                    ? 'bg-blue-300'
-                    : 'bg-gray-200'
+                      ? 'bg-blue-300'
+                      : 'bg-gray-200'
                 }`}
               />
             ))}
@@ -333,9 +335,7 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
               <CardTitle className="text-2xl">{currentStepData.title}</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-8">
-            {currentStepData.content}
-          </CardContent>
+          <CardContent className="p-8">{currentStepData.content}</CardContent>
         </Card>
 
         {/* Navigation */}
@@ -371,7 +371,7 @@ const Tutorial = ({ onComplete, onBack }: TutorialProps) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Tutorial;
+export default Tutorial

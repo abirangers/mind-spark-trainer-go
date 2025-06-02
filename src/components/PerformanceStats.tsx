@@ -1,81 +1,117 @@
-
-import { useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Play, TrendingUp, Target, Clock, Brain, Award, Calendar } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useState, useMemo } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ArrowLeft, Play, TrendingUp, Target, Clock, Brain, Award, Calendar } from 'lucide-react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts'
 
 interface PerformanceStatsProps {
-  onBack: () => void;
-  onStartTraining: () => void;
+  onBack: () => void
+  onStartTraining: () => void
 }
 
 interface GameSession {
-  trials: number;
-  nLevel: number;
-  accuracy: number;
-  visualAccuracy: number;
-  audioAccuracy: number;
-  averageResponseTime: number;
-  mode: string;
-  timestamp: string;
+  trials: number
+  nLevel: number
+  accuracy: number
+  visualAccuracy: number
+  audioAccuracy: number
+  averageResponseTime: number
+  mode: string
+  timestamp: string
 
   // New detailed counts (optional)
-  actualVisualMatches?: number;
-  visualHits?: number;
-  visualMisses?: number;
-  visualFalseAlarms?: number;
-  visualCorrectRejections?: number;
-  actualAudioMatches?: number;
-  audioHits?: number;
-  audioMisses?: number;
-  audioFalseAlarms?: number;
-  audioCorrectRejections?: number;
+  actualVisualMatches?: number
+  visualHits?: number
+  visualMisses?: number
+  visualFalseAlarms?: number
+  visualCorrectRejections?: number
+  actualAudioMatches?: number
+  audioHits?: number
+  audioMisses?: number
+  audioFalseAlarms?: number
+  audioCorrectRejections?: number
+}
+
+// Helper function to calculate day streak
+const calculateDayStreak = (sessions: GameSession[]): number => {
+  if (sessions.length === 0) return 0
+
+  // Get unique dates from sessions (sorted by date)
+  const sessionDates = sessions
+    .map(session => {
+      const date = new Date(session.timestamp)
+      return date.toDateString() // This gives us "Mon Jan 01 2024" format
+    })
+    .filter((date, index, array) => array.indexOf(date) === index) // Remove duplicates
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime()) // Sort chronologically
+
+  if (sessionDates.length === 0) return 0
+
+  // Check if the most recent session was today or yesterday
+  const today = new Date().toDateString()
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()
+  const mostRecentDate = sessionDates[sessionDates.length - 1]
+
+  // If the most recent session is not today or yesterday, streak is 0
+  if (mostRecentDate !== today && mostRecentDate !== yesterday) {
+    return 0
+  }
+
+  // Count consecutive days working backwards from the most recent date
+  let streak = 0
+  let currentDate = new Date(mostRecentDate)
+
+  for (let i = sessionDates.length - 1; i >= 0; i--) {
+    const sessionDate = new Date(sessionDates[i])
+    const expectedDate = new Date(currentDate.getTime() - streak * 24 * 60 * 60 * 1000)
+
+    if (sessionDate.toDateString() === expectedDate.toDateString()) {
+      streak++
+    } else {
+      break
+    }
+  }
+
+  return streak
 }
 
 const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) => {
-  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'all'>('all');
+  const [_timeRange, _setTimeRange] = useState<'week' | 'month' | 'all'>('all')
 
-  // Get sessions from localStorage or generate demo data
+  // Get sessions from localStorage - no demo data for new users
   const sessions: GameSession[] = useMemo(() => {
-    const stored = localStorage.getItem('nback-sessions');
+    const stored = localStorage.getItem('nback-sessions')
     if (stored) {
       try {
-        let parsedSessions: GameSession[] = JSON.parse(stored);
+        const parsedSessions: GameSession[] = JSON.parse(stored)
         // Ensure all sessions have a timestamp for robust sorting.
         // Filter out sessions without a valid timestamp before sorting if necessary.
         parsedSessions.sort((a, b) => {
-          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-          return timeA - timeB;
-        });
-        return parsedSessions;
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0
+          return timeA - timeB
+        })
+        return parsedSessions
       } catch (e) {
-        console.error("Error parsing sessions from localStorage", e);
-        // Fallback to demo data or empty array if parsing fails
+        console.error('Error parsing sessions from localStorage', e)
+        // Return empty array if parsing fails
+        return []
       }
     }
-    
-    // Generate demo data for visualization
-    const now = Date.now();
-    const demoSessions: GameSession[] = [];
-    
-    for (let i = 0; i < 15; i++) {
-      demoSessions.push({
-        trials: 20,
-        nLevel: Math.min(6, Math.max(1, 2 + Math.floor(i / 3) + (Math.random() > 0.7 ? 1 : 0))),
-        accuracy: Math.max(40, 85 - Math.random() * 20 + i * 2),
-        visualAccuracy: Math.max(35, 80 - Math.random() * 25 + i * 2.5),
-        audioAccuracy: Math.max(35, 75 - Math.random() * 20 + i * 1.5),
-        averageResponseTime: Math.max(800, 1500 - i * 30 - Math.random() * 200),
-        mode: ['single-visual', 'single-audio', 'dual'][Math.floor(Math.random() * 3)],
-        timestamp: new Date(now - (14 - i) * 24 * 60 * 60 * 1000).toISOString() // Use ISOString for demo
-      });
-    }
-    return demoSessions; // Return demo data if 'stored' is null or parsing failed
-  }, []);
+
+    // Return empty array for new users - no demo data
+    return []
+  }, [])
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -87,36 +123,40 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
         averageResponseTime: 0,
         improvementRate: 0,
         currentStreak: 0,
-        totalTrainingTime: 0
-      };
+        totalTrainingTime: 0,
+      }
     }
 
-    const totalSessions = sessions.length;
-    const averageAccuracy = sessions.reduce((sum, s) => sum + s.accuracy, 0) / totalSessions;
-    const bestNLevel = Math.max(...sessions.map(s => s.nLevel));
-    const averageResponseTime = sessions.reduce((sum, s) => sum + s.averageResponseTime, 0) / totalSessions;
-    
+    const totalSessions = sessions.length
+    const averageAccuracy = sessions.reduce((sum, s) => sum + s.accuracy, 0) / totalSessions
+    const bestNLevel = Math.max(...sessions.map(s => s.nLevel))
+    const averageResponseTime =
+      sessions.reduce((sum, s) => sum + s.averageResponseTime, 0) / totalSessions
+
     // Calculate improvement rate (last 5 vs first 5 sessions)
-    const firstFive = sessions.slice(0, 5);
-    const lastFive = sessions.slice(-5);
-    const firstAvg = firstFive.reduce((sum, s) => sum + s.accuracy, 0) / firstFive.length;
-    const lastAvg = lastFive.reduce((sum, s) => sum + s.accuracy, 0) / lastFive.length;
-    const improvementRate = lastAvg - firstAvg;
-    
+    const firstFive = sessions.slice(0, 5)
+    const lastFive = sessions.slice(-5)
+    const firstAvg = firstFive.reduce((sum, s) => sum + s.accuracy, 0) / firstFive.length
+    const lastAvg = lastFive.reduce((sum, s) => sum + s.accuracy, 0) / lastFive.length
+    const improvementRate = lastAvg - firstAvg
+
     // Calculate total training time
-    const totalTrialsCompleted = sessions.reduce((sum, s) => sum + s.trials, 0);
-    const totalTrainingTime = totalTrialsCompleted * 4 / 60; // minutes
-    
+    const totalTrialsCompleted = sessions.reduce((sum, s) => sum + s.trials, 0)
+    const totalTrainingTime = (totalTrialsCompleted * 4) / 60 // minutes
+
+    // Calculate current day streak
+    const currentStreak = calculateDayStreak(sessions)
+
     return {
       totalSessions,
       averageAccuracy,
       bestNLevel,
       averageResponseTime,
       improvementRate,
-      currentStreak: 5, // Simplified
-      totalTrainingTime
-    };
-  }, [sessions]);
+      currentStreak,
+      totalTrainingTime,
+    }
+  }, [sessions])
 
   // Prepare chart data
   const chartData = useMemo(() => {
@@ -125,23 +165,28 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
       accuracy: Math.round(session.accuracy),
       nLevel: session.nLevel,
       responseTime: Math.round(session.averageResponseTime),
-      date: session.timestamp ? new Date(session.timestamp).toLocaleDateString() : `Day ${index + 1}`
-    }));
-  }, [sessions]);
+      date: session.timestamp
+        ? new Date(session.timestamp).toLocaleDateString()
+        : `Day ${index + 1}`,
+    }))
+  }, [sessions])
 
   // Mode distribution
   const modeStats = useMemo(() => {
-    const modes = sessions.reduce((acc, session) => {
-      acc[session.mode] = (acc[session.mode] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const modes = sessions.reduce(
+      (acc, session) => {
+        acc[session.mode] = (acc[session.mode] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    )
 
     return Object.entries(modes).map(([mode, count]) => ({
       mode: mode.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
       count,
-      percentage: Math.round((count / sessions.length) * 100)
-    }));
-  }, [sessions]);
+      percentage: Math.round((count / sessions.length) * 100),
+    }))
+  }, [sessions])
 
   if (sessions.length === 0) {
     return (
@@ -160,7 +205,8 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
               <Brain className="w-24 h-24 text-gray-300 mx-auto mb-6" />
               <h2 className="text-2xl font-bold text-gray-900 mb-4">No Training Data Yet</h2>
               <p className="text-gray-600 mb-8 text-lg">
-                Complete your first training session to see detailed performance analytics and track your cognitive improvement over time.
+                Complete your first training session to see detailed performance analytics and track
+                your cognitive improvement over time.
               </p>
               <Button size="lg" onClick={onStartTraining} className="gap-2">
                 <Play className="h-4 w-4" />
@@ -170,7 +216,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
           </Card>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -214,7 +260,9 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                   <Target className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{stats.averageAccuracy.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stats.averageAccuracy.toFixed(1)}%
+                  </div>
                   <div className="text-sm text-gray-600">Average Accuracy</div>
                 </div>
               </div>
@@ -242,7 +290,9 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                   <Clock className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">{stats.averageResponseTime.toFixed(0)}ms</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {stats.averageResponseTime.toFixed(0)}ms
+                  </div>
                   <div className="text-sm text-gray-600">Avg Response Time</div>
                 </div>
               </div>
@@ -274,14 +324,14 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="session" />
                       <YAxis domain={[0, 100]} />
-                      <Tooltip 
-                        formatter={(value: any) => [`${value}%`, 'Accuracy']}
-                        labelFormatter={(label) => `Session ${label}`}
+                      <Tooltip
+                        formatter={(value: number) => [`${value}%`, 'Accuracy']}
+                        labelFormatter={(label: string) => `Session ${label}`}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="accuracy" 
-                        stroke="#3B82F6" 
+                      <Line
+                        type="monotone"
+                        dataKey="accuracy"
+                        stroke="#3B82F6"
                         strokeWidth={3}
                         dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
                       />
@@ -304,14 +354,14 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="session" />
                       <YAxis domain={[1, 8]} />
-                      <Tooltip 
-                        formatter={(value: any) => [`${value}-Back`, 'N-Level']}
-                        labelFormatter={(label) => `Session ${label}`}
+                      <Tooltip
+                        formatter={(value: number) => [`${value}-Back`, 'N-Level']}
+                        labelFormatter={(label: string) => `Session ${label}`}
                       />
-                      <Line 
-                        type="stepAfter" 
-                        dataKey="nLevel" 
-                        stroke="#7C3AED" 
+                      <Line
+                        type="stepAfter"
+                        dataKey="nLevel"
+                        stroke="#7C3AED"
                         strokeWidth={3}
                         dot={{ fill: '#7C3AED', strokeWidth: 2, r: 4 }}
                       />
@@ -335,14 +385,14 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="session" />
                     <YAxis />
-                    <Tooltip 
-                      formatter={(value: any) => [`${value}ms`, 'Response Time']}
-                      labelFormatter={(label) => `Session ${label}`}
+                    <Tooltip
+                      formatter={(value: number) => [`${value}ms`, 'Response Time']}
+                      labelFormatter={(label: string) => `Session ${label}`}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="responseTime" 
-                      stroke="#F59E0B" 
+                    <Line
+                      type="monotone"
+                      dataKey="responseTime"
+                      stroke="#F59E0B"
                       strokeWidth={3}
                       dot={{ fill: '#F59E0B', strokeWidth: 2, r: 4 }}
                     />
@@ -383,30 +433,39 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {sessions.slice(-5).reverse().map((session, index) => (
-                      <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Badge variant="outline">{session.nLevel}-Back</Badge>
-                            <span className="text-sm text-gray-600 capitalize">
-                              {session.mode.replace('-', ' ')}
-                            </span>
+                    {sessions
+                      .slice(-5)
+                      .reverse()
+                      .map((session, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="outline">{session.nLevel}-Back</Badge>
+                              <span className="text-sm text-gray-600 capitalize">
+                                {session.mode.replace('-', ' ')}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">{session.accuracy.toFixed(1)}%</div>
+                              <div className="text-xs text-gray-500">
+                                {session.averageResponseTime.toFixed(0)}ms
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <div className="font-semibold">{session.accuracy.toFixed(1)}%</div>
-                            <div className="text-xs text-gray-500">{session.averageResponseTime.toFixed(0)}ms</div>
+                          <div className="mt-1 text-xs text-gray-500 flex items-center gap-3">
+                            {(session.mode === 'single-visual' || session.mode === 'dual') && (
+                              <span>
+                                V-Hits: {session.visualHits ?? 0}/{session.actualVisualMatches ?? 0}
+                              </span>
+                            )}
+                            {(session.mode === 'single-audio' || session.mode === 'dual') && (
+                              <span>
+                                A-Hits: {session.audioHits ?? 0}/{session.actualAudioMatches ?? 0}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="mt-1 text-xs text-gray-500 flex items-center gap-3">
-                          {(session.mode === 'single-visual' || session.mode === 'dual') && (
-                            <span>V-Hits: {session.visualHits ?? 0}/{session.actualVisualMatches ?? 0}</span>
-                          )}
-                          {(session.mode === 'single-audio' || session.mode === 'dual') && (
-                            <span>A-Hits: {session.audioHits ?? 0}/{session.actualAudioMatches ?? 0}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </CardContent>
               </Card>
@@ -429,9 +488,12 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                           <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
                             <TrendingUp className="w-5 h-5 text-green-600 mt-0.5" />
                             <div>
-                              <div className="font-medium text-green-800">Consistent Improvement</div>
+                              <div className="font-medium text-green-800">
+                                Consistent Improvement
+                              </div>
                               <div className="text-sm text-green-700">
-                                Your accuracy has improved by {stats.improvementRate.toFixed(1)}% over recent sessions
+                                Your accuracy has improved by {stats.improvementRate.toFixed(1)}%
+                                over recent sessions
                               </div>
                             </div>
                           </div>
@@ -442,7 +504,8 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                             <div>
                               <div className="font-medium text-blue-800">Fast Response Time</div>
                               <div className="text-sm text-blue-700">
-                                Your average response time is excellent at {stats.averageResponseTime.toFixed(0)}ms
+                                Your average response time is excellent at{' '}
+                                {stats.averageResponseTime.toFixed(0)}ms
                               </div>
                             </div>
                           </div>
@@ -453,7 +516,8 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                             <div>
                               <div className="font-medium text-purple-800">High Accuracy</div>
                               <div className="text-sm text-purple-700">
-                                Maintaining {stats.averageAccuracy.toFixed(1)}% accuracy shows strong working memory
+                                Maintaining {stats.averageAccuracy.toFixed(1)}% accuracy shows
+                                strong working memory
                               </div>
                             </div>
                           </div>
@@ -468,7 +532,8 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                           <div className="p-3 bg-yellow-50 rounded-lg">
                             <div className="font-medium text-yellow-800">Try Higher N-Levels</div>
                             <div className="text-sm text-yellow-700">
-                              Consider gradually increasing to {stats.bestNLevel + 1}-back for more challenge
+                              Consider gradually increasing to {stats.bestNLevel + 1}-back for more
+                              challenge
                             </div>
                           </div>
                         )}
@@ -483,7 +548,8 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                         <div className="p-3 bg-gray-50 rounded-lg">
                           <div className="font-medium text-gray-800">Training Consistency</div>
                           <div className="text-sm text-gray-700">
-                            Aim for {Math.max(3, 7 - Math.floor(stats.totalSessions / 5))} sessions per week for optimal improvement
+                            Aim for {Math.max(3, 7 - Math.floor(stats.totalSessions / 5))} sessions
+                            per week for optimal improvement
                           </div>
                         </div>
                       </div>
@@ -500,15 +566,21 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                 <CardContent>
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600">{stats.totalTrainingTime.toFixed(0)}</div>
+                      <div className="text-3xl font-bold text-blue-600">
+                        {stats.totalTrainingTime.toFixed(0)}
+                      </div>
                       <div className="text-sm text-gray-600">Minutes Trained</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600">{(stats.totalSessions * 20).toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-green-600">
+                        {(stats.totalSessions * 20).toLocaleString()}
+                      </div>
                       <div className="text-sm text-gray-600">Trials Completed</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-600">{stats.currentStreak}</div>
+                      <div className="text-3xl font-bold text-purple-600">
+                        {stats.currentStreak}
+                      </div>
                       <div className="text-sm text-gray-600">Day Streak</div>
                     </div>
                   </div>
@@ -519,7 +591,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
         </Tabs>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PerformanceStats;
+export default PerformanceStats

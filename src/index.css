@@ -82,31 +82,31 @@
   }
 
   .theme-high-contrast {
-    --background: 0 0% 0%;              /* #000000 Black */
-    --foreground: 0 0% 100%;            /* #FFFFFF White */
-    --card: 0 0% 10.2%;                 /* #1A1A1A Dark Gray */
-    --card-foreground: 0 0% 100%;       /* #FFFFFF White */
-    --popover: 0 0% 10.2%;              /* #1A1A1A Dark Gray */
-    --popover-foreground: 0 0% 100%;    /* #FFFFFF White */
-    --primary: 60 100% 50%;             /* #FFFF00 Yellow */
-    --primary-foreground: 0 0% 0%;      /* #000000 Black */
-    --secondary: 180 100% 50%;          /* #00FFFF Cyan */
-    --secondary-foreground: 0 0% 0%;   /* #000000 Black */
-    --muted: 0 0% 33.3%;                /* #555555 Medium Gray */
-    --muted-foreground: 0 0% 73.3%;     /* #BBBBBB Light Gray */
-    --accent: 180 100% 50%;             /* Cyan, for accent elements */
-    --accent-foreground: 0 0% 0%;       /* Black, for text on accent */
-    --destructive: 0 100% 71%;          /* #FF6B6B Light Red */
-    --destructive-foreground: 0 0% 0%;  /* #000000 Black */
-    --border: 0 0% 33.3%;               /* #555555 Medium Gray */
-    --input: 0 0% 33.3%;                /* #555555 Medium Gray (for input borders) */
-    --ring: 180 100% 50%;               /* #00FFFF Cyan (for focus rings) */
+    --background: 0 0% 0%; /* #000000 Black */
+    --foreground: 0 0% 100%; /* #FFFFFF White */
+    --card: 0 0% 10.2%; /* #1A1A1A Dark Gray */
+    --card-foreground: 0 0% 100%; /* #FFFFFF White */
+    --popover: 0 0% 10.2%; /* #1A1A1A Dark Gray */
+    --popover-foreground: 0 0% 100%; /* #FFFFFF White */
+    --primary: 60 100% 50%; /* #FFFF00 Yellow */
+    --primary-foreground: 0 0% 0%; /* #000000 Black */
+    --secondary: 180 100% 50%; /* #00FFFF Cyan */
+    --secondary-foreground: 0 0% 0%; /* #000000 Black */
+    --muted: 0 0% 33.3%; /* #555555 Medium Gray */
+    --muted-foreground: 0 0% 73.3%; /* #BBBBBB Light Gray */
+    --accent: 180 100% 50%; /* Cyan, for accent elements */
+    --accent-foreground: 0 0% 0%; /* Black, for text on accent */
+    --destructive: 0 100% 71%; /* #FF6B6B Light Red */
+    --destructive-foreground: 0 0% 0%; /* #000000 Black */
+    --border: 0 0% 33.3%; /* #555555 Medium Gray */
+    --input: 0 0% 33.3%; /* #555555 Medium Gray (for input borders) */
+    --ring: 180 100% 50%; /* #00FFFF Cyan (for focus rings) */
 
     /* Custom PRD colors - High Contrast versions */
-    --success: 100 100% 45.1%;          /* #39FF14 Neon Green */
-    --success-foreground: 0 0% 0%;      /* #000000 Black */
-    --warning: 60 100% 50%;             /* #FFFF00 Yellow (same as primary) */
-    --warning-foreground: 0 0% 0%;      /* #000000 Black */
+    --success: 100 100% 45.1%; /* #39FF14 Neon Green */
+    --success-foreground: 0 0% 0%; /* #000000 Black */
+    --warning: 60 100% 50%; /* #FFFF00 Yellow (same as primary) */
+    --warning-foreground: 0 0% 0%; /* #000000 Black */
 
     /* High Contrast Sidebar variables (can be adjusted further) */
     --sidebar-background: 0 0% 0%; /* Black */

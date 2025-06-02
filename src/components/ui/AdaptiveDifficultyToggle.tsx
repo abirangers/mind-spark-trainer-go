@@ -1,15 +1,11 @@
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useSettingsStore } from '@/stores/settingsStore'; // Adjust path as needed
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { useSettingsStore } from '@/stores/settingsStore' // Adjust path as needed
 
 export const AdaptiveDifficultyToggle = () => {
   // Select specific state slices for performance
-  const isAdaptiveDifficultyEnabled = useSettingsStore(
-    (state) => state.isAdaptiveDifficultyEnabled
-  );
-  const toggleAdaptiveDifficulty = useSettingsStore(
-    (state) => state.toggleAdaptiveDifficulty
-  );
+  const isAdaptiveDifficultyEnabled = useSettingsStore(state => state.isAdaptiveDifficultyEnabled)
+  const toggleAdaptiveDifficulty = useSettingsStore(state => state.toggleAdaptiveDifficulty)
 
   return (
     <div className="flex items-center space-x-2">
@@ -23,5 +19,5 @@ export const AdaptiveDifficultyToggle = () => {
         Auto-adjust N-Level
       </Label>
     </div>
-  );
-};
+  )
+}
