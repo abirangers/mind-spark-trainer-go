@@ -54,15 +54,13 @@ export const useStimulusGeneration = ({
     const newVisualSeq = [...currentVisualSeq, newPosition];
     const newAudioSeq = [...currentAudioSeq, newLetter];
 
-    const vMatch =
-      newVisualSeq.length > nLevel && nLevel >= 0
-        ? newVisualSeq[newVisualSeq.length - 1 - nLevel] === newPosition
-        : false;
+    const vMatch = newVisualSeq.length > nLevel && nLevel >= 0
+      ? newVisualSeq[newVisualSeq.length - 1 - nLevel] === newPosition
+      : false;
 
-    const aMatch =
-      newAudioSeq.length > nLevel && nLevel >= 0
-        ? newAudioSeq[newAudioSeq.length - 1 - nLevel] === newLetter
-        : false;
+    const aMatch = newAudioSeq.length > nLevel && nLevel >= 0
+      ? newAudioSeq[newAudioSeq.length - 1 - nLevel] === newLetter
+      : false;
 
     // Update refs
     visualSeqRef.current = newVisualSeq;

@@ -46,7 +46,7 @@ interface GameLogicProps {
   initialNumTrials?: number;
   isPracticeMode?: boolean;
   onPracticeComplete?: () => void;
-  // Removed resetStimulusSequences - will be handled in GameInterface
+  resetStimulusSequences?: () => void; // Called by startGame (optional)
   // Removed: visualMatches, audioMatches, userVisualResponses, userAudioResponses, responseTimes, currentTrial
   // These are now passed directly to endSession or managed by other hooks.
 }
@@ -69,6 +69,7 @@ export const useGameLogic = ({
   initialNumTrials = 20,
   isPracticeMode = false,
   onPracticeComplete,
+  resetStimulusSequences,
 }: GameLogicProps) => {
   const [gameMode, setGameMode] = useState<GameMode>(
     isPracticeMode ? PRACTICE_MODE_CONST : initialGameMode
@@ -224,16 +225,10 @@ export const useGameLogic = ({
 
   const startGame = useCallback(() => {
     setGameState("playing");
-    // resetStimulusSequences is now handled in GameInterface
-  }, [setGameState]);
-
-  const pauseGame = useCallback(() => {
-    setGameState("paused");
-  }, [setGameState]);
-
-  const resumeGame = useCallback(() => {
-    setGameState("playing");
-  }, [setGameState]);
+    if (resetStimulusSequences) {
+      resetStimulusSequences();
+    }
+  }, [resetStimulusSequences, setGameState]);
 
   useEffect(() => {
     if (isPracticeMode && gameState === "setup" && !practiceCompleted) {
@@ -248,14 +243,6 @@ export const useGameLogic = ({
     setGameState("setup");
   }, [setGameState]);
 
-  const endPracticeSession = useCallback(() => {
-    if (isPracticeMode && onPracticeComplete) {
-      onPracticeComplete();
-    } else {
-      setGameState("setup");
-    }
-  }, [isPracticeMode, onPracticeComplete, setGameState]);
-
   return {
     gameMode,
     setGameMode,
@@ -266,10 +253,7 @@ export const useGameLogic = ({
     numTrials,
     setNumTrials,
     startGame,
-    pauseGame,
-    resumeGame,
     resetGame,
-    endPracticeSession,
     endSession, // Expose endSession
     PRACTICE_MODE: PRACTICE_MODE_CONST,
     PRACTICE_N_LEVEL: PRACTICE_N_LEVEL_CONST,

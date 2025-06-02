@@ -15,7 +15,7 @@ interface EndSessionResultsData {
 /**
  * Props for the useTrialManagement hook.
  */
-export interface TrialManagementProps {
+interface TrialManagementProps {
   nLevel: number;
   numTrials: number;
   gameMode: GameMode;
@@ -70,6 +70,9 @@ export const useTrialManagement = ({
   const startTrialFnRef = useRef<() => void>();
   const postDualResponseDelayRef = useRef<NodeJS.Timeout>();
 
+  // Store the current trial's visual match status for timeout handling
+  const currentTrialVisualMatchRef = useRef<boolean>(false);
+
   const advanceTrial = useCallback(() => {
     setCurrentTrial((prev) => {
       const nextTrialIndex = prev + 1;
@@ -81,50 +84,21 @@ export const useTrialManagement = ({
   }, [numTrials]);
 
   const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode) {
-      let matchExpectedThisTrial = false;
-      // Determine if a match was expected based on the game mode
-      if (gameMode === "single-visual") {
-        if (currentTrial < visualMatches.length && visualMatches[currentTrial]) {
-          matchExpectedThisTrial = true;
-        }
-      } else if (gameMode === "single-audio") {
-        if (currentTrial < audioMatches.length && audioMatches[currentTrial]) {
-          matchExpectedThisTrial = true;
-        }
-      } else if (gameMode === "dual") {
-        const visualMatchExpected =
-          currentTrial < visualMatches.length && visualMatches[currentTrial];
-        const audioMatchExpected = currentTrial < audioMatches.length && audioMatches[currentTrial];
-        if (visualMatchExpected || audioMatchExpected) {
-          matchExpectedThisTrial = true;
-        }
-      }
+    console.log("handleTrialTimeout called:", {
+      isPracticeMode,
+      currentTrial,
+      visualMatchesLength: visualMatches.length,
+      visualExpectedFromRef: currentTrialVisualMatchRef.current,
+      visualExpectedFromArray: visualMatches[currentTrial],
+    });
 
-      // Show toast notification
-      if (matchExpectedThisTrial) {
+    if (isPracticeMode) {
+      const visualExpected = currentTrialVisualMatchRef.current;
+      console.log("Showing toast for trial", currentTrial, "visualExpected:", visualExpected);
+      if (visualExpected) {
         toast.error("Missed Match!", { duration: 1500 });
       } else {
-        // Only show "Correct: No match there" if the trial is within bounds for the active game mode
-        const isVisualRelevant = gameMode === "single-visual" || gameMode === "dual";
-        const isAudioRelevant = gameMode === "single-audio" || gameMode === "dual";
-        const isTrialInVisualBounds = isVisualRelevant && currentTrial < visualMatches.length;
-        const isTrialInAudioBounds = isAudioRelevant && currentTrial < audioMatches.length;
-
-        let canShowNoMatchToast = false;
-        if (gameMode === "single-visual") {
-          canShowNoMatchToast = isTrialInVisualBounds;
-        } else if (gameMode === "single-audio") {
-          canShowNoMatchToast = isTrialInAudioBounds;
-        } else if (gameMode === "dual") {
-          // In dual mode, "no match" means neither visual nor audio had a match.
-          // We also need to ensure we are within the bounds of at least one of them.
-          canShowNoMatchToast = isTrialInVisualBounds || isTrialInAudioBounds;
-        }
-
-        if (canShowNoMatchToast) {
-          toast.info("Correct: No match there.", { duration: 1500 });
-        }
+        toast.info("Correct: No match there.", { duration: 1500 });
       }
     }
 
@@ -134,20 +108,15 @@ export const useTrialManagement = ({
 
     setResponseTimes((prev) => [...prev, stimulusDurationMs]);
     advanceTrial();
-  }, [
-    isPracticeMode,
-    currentTrial,
-    visualMatches,
-    audioMatches,
-    gameMode,
-    stimulusDurationMs,
-    advanceTrial,
-  ]);
+  }, [isPracticeMode, currentTrial, visualMatches, stimulusDurationMs, advanceTrial]);
 
   const startSingleTrialExecution = useCallback(() => {
     if (currentTrial >= numTrials) return;
 
-    const { newPosition, newLetter } = generateStimulus();
+    const { newPosition, newLetter, visualMatch } = generateStimulus();
+
+    // Store the visual match result for this trial in the ref
+    currentTrialVisualMatchRef.current = visualMatch;
 
     setCurrentPosition(newPosition);
     setCurrentLetter(newLetter);
@@ -210,13 +179,8 @@ export const useTrialManagement = ({
         }
       }
 
-      if (
-        isPracticeMode &&
-        responseType === "visual" &&
-        visualResponseMadeThisTrial &&
-        trialIndexToUpdate < visualMatches.length
-      ) {
-        const visualExpected = visualMatches[trialIndexToUpdate];
+      if (isPracticeMode && responseType === "visual" && visualResponseMadeThisTrial) {
+        const visualExpected = currentTrialVisualMatchRef.current;
         if (visualExpected) toast.success("Correct Match!", { duration: 1500 });
         else toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 });
       }
@@ -248,7 +212,6 @@ export const useTrialManagement = ({
       visualResponseMadeThisTrial,
       audioResponseMadeThisTrial,
       isPracticeMode,
-      visualMatches,
       advanceTrial,
     ]
   );
@@ -302,10 +265,16 @@ export const useTrialManagement = ({
     setAudioResponseMadeThisTrial(false);
     setIsWaitingForResponse(false);
 
+    // Test toast to verify Sonner is working
+    if (isPracticeMode) {
+      console.log("Practice mode starting - testing toast");
+      toast.info("Practice mode started! Let timeouts happen to see feedback.", { duration: 2000 });
+    }
+
     if (startTrialFnRef.current) {
       setTimeout(() => startTrialFnRef.current?.(), 100);
     }
-  }, [numTrials]);
+  }, [numTrials, isPracticeMode]);
 
   const resetTrialStatesAndTimers = useCallback(() => {
     if (trialTimeoutRef.current) clearTimeout(trialTimeoutRef.current);

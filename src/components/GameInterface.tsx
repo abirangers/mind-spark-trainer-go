@@ -50,18 +50,27 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   const [audioEnabled, setAudioEnabled] = useState(true);
 
   // Hook Instantiation Order:
+  // Initialize with default nLevel, will be updated when gameLogic.nLevel changes
+  const [currentNLevel, setCurrentNLevel] = useState(isPracticeMode ? PRACTICE_N_LEVEL_CONST : 2);
+
+  const stimulusG = useStimulusGeneration({
+    nLevel: currentNLevel,
+    audioEnabled,
+  });
+
   const gameLogic = useGameLogic({
     initialGameMode: isPracticeMode ? PRACTICE_MODE_CONST : "single-visual",
     initialNLevel: isPracticeMode ? PRACTICE_N_LEVEL_CONST : 2,
     initialNumTrials: isPracticeMode ? PRACTICE_NUM_TRIALS_CONST : 20,
     isPracticeMode,
     onPracticeComplete,
+    resetStimulusSequences: stimulusG.resetStimulusSequences,
   });
 
-  const stimulusG = useStimulusGeneration({
-    nLevel: gameLogic.nLevel,
-    audioEnabled,
-  });
+  // Update currentNLevel when gameLogic.nLevel changes
+  useEffect(() => {
+    setCurrentNLevel(gameLogic.nLevel);
+  }, [gameLogic.nLevel]);
 
   const trialM = useTrialManagement({
     nLevel: gameLogic.nLevel,
@@ -88,14 +97,10 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
     numTrials,
     setNumTrials,
     startGame,
-    pauseGame,
-    resumeGame,
     resetGame,
-    endPracticeSession,
-    endSession,
   } = gameLogic;
 
-  const { resetStimulusSequences, cancelCurrentSpeech } = stimulusG;
+  const { cancelCurrentSpeech } = stimulusG;
 
   const {
     currentTrial,
@@ -114,10 +119,10 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   // Effect to bridge startGame from useGameLogic to actual trial initiation
   useEffect(() => {
     if (gameState === "playing") {
-      resetStimulusSequences();
+      // resetStimulusSequences is now called by startGame in useGameLogic
       initiateFirstTrial();
     }
-  }, [gameState, initiateFirstTrial, resetStimulusSequences]); // Dependencies on functions from hooks
+  }, [gameState, initiateFirstTrial]); // Dependencies on functions from hooks
 
   const handleResetGame = useCallback(() => {
     resetGame();
@@ -126,18 +131,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
       cancelCurrentSpeech();
     }
   }, [resetGame, resetTrialStates, audioEnabled, cancelCurrentSpeech]);
-
-  const handlePauseGame = useCallback(() => {
-    if (gameState === "playing") {
-      pauseGame();
-      resetTrialStates(); // Stop current trial timers
-      if (audioEnabled) {
-        cancelCurrentSpeech();
-      }
-    } else if (gameState === "paused") {
-      resumeGame();
-    }
-  }, [gameState, pauseGame, resumeGame, resetTrialStates, audioEnabled, cancelCurrentSpeech]);
 
   // Keyboard event listener
   useEffect(() => {
@@ -178,7 +171,7 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
   };
 
   const playingScreenProps = {
-    onPauseGame: handlePauseGame,
+    onPauseGame: handleResetGame,
     nLevel,
     gameMode,
     currentTrial,
@@ -221,32 +214,6 @@ const GameInterface: React.FC<GameInterfaceProps> = ({
 
   if (gameState === "playing") {
     return <PlayingScreen {...playingScreenProps} />;
-  }
-
-  if (gameState === "paused") {
-    // Show paused screen with resume button
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Game Paused</h2>
-          <p className="text-gray-600 mb-6">Click Resume to continue your training session</p>
-          <div className="space-x-4">
-            <button
-              onClick={handlePauseGame}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Resume
-            </button>
-            <button
-              onClick={endPracticeSession}
-              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              End Session
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   if (gameState === "results") {

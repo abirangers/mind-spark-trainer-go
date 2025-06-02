@@ -40,6 +40,7 @@ const localStorageMock = (() => {
 vi.stubGlobal("localStorage", localStorageMock);
 
 describe("useGameLogic Hook", () => {
+  const mockResetStimulusSequences = vi.fn();
   // The props for useGameLogic used 'executeTrial', let's align with that.
   // The test setup used 'initiateFirstTrial', but the hook itself expects 'executeTrial'.
   const mockExecuteTrial = vi.fn();
@@ -52,7 +53,7 @@ describe("useGameLogic Hook", () => {
     initialNumTrials: 5,
     isPracticeMode: false,
     onPracticeComplete: mockOnPracticeComplete,
-    // resetStimulusSequences is now handled in GameInterface, not passed to useGameLogic
+    resetStimulusSequences: mockResetStimulusSequences,
   };
 
   let originalSettingsStoreState: ReturnType<typeof useSettingsStore.getState>;
@@ -83,13 +84,13 @@ describe("useGameLogic Hook", () => {
     expect(result.current.numTrials).toBe(defaultProps.initialNumTrials);
   });
 
-  it("startGame should set gameState to playing", () => {
+  it("startGame should set gameState to playing and call resetStimulusSequences", () => {
     const { result } = renderHook(() => useGameLogic(defaultProps));
     act(() => {
       result.current.startGame();
     });
     expect(result.current.gameState).toBe("playing" as GameState);
-    // resetStimulusSequences is now handled in GameInterface, not in useGameLogic
+    expect(mockResetStimulusSequences).toHaveBeenCalledTimes(1);
     // executeTrial is called by GameInterface via useEffect when gameState becomes 'playing'
     expect(mockExecuteTrial).not.toHaveBeenCalled();
   });
@@ -294,7 +295,7 @@ describe("useGameLogic Hook", () => {
     // Initial render with isPracticeMode = true should trigger startGame via useEffect
     const { result } = renderHook(() => useGameLogic({ ...defaultProps, isPracticeMode: true }));
     expect(result.current.gameState).toBe("playing"); // startGame sets it to 'playing'
-    // resetStimulusSequences is now handled in GameInterface, not in useGameLogic
+    expect(mockResetStimulusSequences).toHaveBeenCalled();
   });
 
   // Note: The useEffect that auto-called endSession based on currentTrial prop has been removed.

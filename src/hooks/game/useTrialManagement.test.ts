@@ -30,7 +30,6 @@ describe("useTrialManagement Hook", () => {
     stimulusDurationMsInitial: 1000,
     isPracticeMode: false,
     visualMatches: [false, true, false], // Example, ensure length matches numTrials for tests
-    audioMatches: [false, false, true], // Added for tests
     generateStimulus: mockGenerateStimulus,
     playAudioLetter: mockPlayAudioLetter,
     onAllTrialsComplete: mockOnAllTrialsComplete,
@@ -162,7 +161,6 @@ describe("useTrialManagement Hook", () => {
       ...defaultProps,
       isPracticeMode: true,
       visualMatches: [true, false, false],
-      audioMatches: [false, false, false],
     };
     const { result } = renderHook(() => useTrialManagement(practiceProps));
     act(() => {
@@ -182,7 +180,6 @@ describe("useTrialManagement Hook", () => {
       ...defaultProps,
       isPracticeMode: true,
       visualMatches: [false, false, false],
-      audioMatches: [false, false, false],
     };
     const { result } = renderHook(() => useTrialManagement(practiceProps));
     act(() => {
