@@ -7,9 +7,6 @@ interface SettingsState {
   setHighContrastMode: (value: boolean) => void
   fontSize: string
   setFontSize: (size: string) => void
-
-  isAdaptiveDifficultyEnabled: boolean // New
-  toggleAdaptiveDifficulty: () => void // New
 }
 
 // Helper function to apply theme class to body
@@ -39,7 +36,6 @@ export const useSettingsStore = create<SettingsState>()(
     (set, get) => ({
       isHighContrastMode: false,
       fontSize: 'default',
-      isAdaptiveDifficultyEnabled: true, // Default adaptive difficulty to true
 
       toggleHighContrastMode: () => {
         const newMode = !get().isHighContrastMode
@@ -54,12 +50,6 @@ export const useSettingsStore = create<SettingsState>()(
         set({ fontSize: size })
         applyFontSizeToHtml(size)
       },
-      toggleAdaptiveDifficulty: () => {
-        // New action
-        const newMode = !get().isAdaptiveDifficultyEnabled
-        set({ isAdaptiveDifficultyEnabled: newMode })
-        // No direct DOM side effect needed for this toggle itself
-      },
     }),
     {
       name: 'app-settings',
@@ -68,8 +58,6 @@ export const useSettingsStore = create<SettingsState>()(
         if (state) {
           applyThemeToBody(state.isHighContrastMode)
           applyFontSizeToHtml(state.fontSize || 'default')
-          // isAdaptiveDifficultyEnabled does not need explicit action on rehydrate here,
-          // components will read its value.
         }
       },
     }
@@ -95,8 +83,6 @@ if (typeof window !== 'undefined') {
         } else {
           applyFontSizeToHtml('default') // Default if not set
         }
-        // isAdaptiveDifficultyEnabled will be picked up by components from the store once it initializes/rehydrates.
-        // No direct DOM manipulation needed here for it.
       }
     } else {
       // If no persisted state, apply defaults for visual settings

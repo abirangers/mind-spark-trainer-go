@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
-import { useSettingsStore } from '@/stores/settingsStore'
 
 export type GameMode = 'single-visual' | 'single-audio' | 'dual'
 export type GameState = 'setup' | 'playing' | 'paused' | 'results'
@@ -69,10 +68,7 @@ export const useGameLogic = ({
   const startTrialRef = useRef<(() => void) | null>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
 
-  // Store
-  const isAdaptiveDifficultyEnabled = useSettingsStore(
-    (state: { isAdaptiveDifficultyEnabled: boolean }) => state.isAdaptiveDifficultyEnabled
-  )
+
 
   // Constants
   const letters = useMemo(() => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'], [])
@@ -163,7 +159,7 @@ export const useGameLogic = ({
     synthRef,
 
     // Computed
-    isAdaptiveDifficultyEnabled,
+
     letters,
 
     // Actions

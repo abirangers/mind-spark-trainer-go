@@ -4,7 +4,7 @@ import GameInterface from '../GameInterface'
 
 // Mock the settings store
 vi.mock('@/stores/settingsStore', () => ({
-  useSettingsStore: vi.fn(() => true), // Mock adaptive difficulty as enabled
+
 }))
 
 // Mock toast

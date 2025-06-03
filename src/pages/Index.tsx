@@ -28,8 +28,8 @@ const Index = () => {
     },
     {
       icon: Target,
-      title: 'Adaptive Difficulty',
-      description: 'AI-powered system adjusts challenge level based on your performance',
+      title: 'Customizable Difficulty',
+      description: 'Manually adjust challenge level to match your skill and goals',
     },
     {
       icon: BarChart3,
@@ -249,9 +249,9 @@ const Index = () => {
                       3
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900">Adaptive Progress</h3>
+                      <h3 className="font-semibold text-lg text-gray-900">Track Progress</h3>
                       <p className="text-gray-600">
-                        Difficulty automatically adjusts based on your performance
+                        Monitor your improvement with detailed performance analytics
                       </p>
                     </div>
                   </div>
