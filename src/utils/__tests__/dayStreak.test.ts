@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 
 // Helper function to calculate day streak (copied from PerformanceStats.tsx)
 const calculateDayStreak = (sessions: Array<{ timestamp: string }>): number => {
-  if (sessions.length === 0) return 0
+  if (sessions.length === 0) {
+    return 0
+  }
 
   // Get unique dates from sessions (sorted by date)
   const sessionDates = sessions
@@ -13,7 +15,9 @@ const calculateDayStreak = (sessions: Array<{ timestamp: string }>): number => {
     .filter((date, index, array) => array.indexOf(date) === index) // Remove duplicates
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime()) // Sort chronologically
 
-  if (sessionDates.length === 0) return 0
+  if (sessionDates.length === 0) {
+    return 0
+  }
 
   // Check if the most recent session was today or yesterday
   const today = new Date().toDateString()
@@ -27,7 +31,7 @@ const calculateDayStreak = (sessions: Array<{ timestamp: string }>): number => {
 
   // Count consecutive days working backwards from the most recent date
   let streak = 0
-  let currentDate = new Date(mostRecentDate)
+  const currentDate = new Date(mostRecentDate)
 
   for (let i = sessionDates.length - 1; i >= 0; i--) {
     const sessionDate = new Date(sessionDates[i])
