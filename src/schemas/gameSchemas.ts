@@ -50,7 +50,6 @@ export const UserResponseSchema = z.object({
 export const SettingsStoreSchema = z.object({
   isHighContrastMode: z.boolean(),
   fontSize: z.enum(['default', 'large', 'xlarge']),
-  isAdaptiveDifficultyEnabled: z.boolean(),
 })
 
 // Local storage data validation
