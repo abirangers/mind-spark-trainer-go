@@ -128,6 +128,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
         improvementRate: 0,
         currentStreak: 0,
         totalTrainingTime: 0,
+        totalTrialsCompleted: 0,
       }
     }
 
@@ -159,6 +160,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
       improvementRate,
       currentStreak,
       totalTrainingTime,
+      totalTrialsCompleted,
     }
   }, [sessions])
 
@@ -577,7 +579,7 @@ const PerformanceStats = ({ onBack, onStartTraining }: PerformanceStatsProps) =>
                     </div>
                     <div className="text-center">
                       <div className="text-3xl font-bold text-green-600">
-                        {(stats.totalSessions * 20).toLocaleString()}
+                        {stats.totalTrialsCompleted.toLocaleString()}
                       </div>
                       <div className="text-sm text-gray-600">Trials Completed</div>
                     </div>

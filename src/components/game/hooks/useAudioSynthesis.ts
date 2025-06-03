@@ -15,7 +15,11 @@ export const useAudioSynthesis = ({ audioEnabled }: UseAudioSynthesisProps) => {
 
     return () => {
       if (synthRef.current) {
-        synthRef.current.cancel()
+        try {
+          synthRef.current.cancel()
+        } catch (error) {
+          console.warn('Error during cleanup:', error)
+        }
       }
     }
   }, [audioEnabled])
@@ -26,22 +30,30 @@ export const useAudioSynthesis = ({ audioEnabled }: UseAudioSynthesisProps) => {
         return
       }
 
-      // Cancel any ongoing speech
-      synthRef.current.cancel()
+      try {
+        // Cancel any ongoing speech
+        synthRef.current.cancel()
 
-      const utterance = new SpeechSynthesisUtterance(letter)
-      utterance.rate = 1.0
-      utterance.pitch = 1.0
-      utterance.volume = 1.0
+        const utterance = new SpeechSynthesisUtterance(letter)
+        utterance.rate = 1.0
+        utterance.pitch = 1.0
+        utterance.volume = 1.0
 
-      synthRef.current.speak(utterance)
+        synthRef.current.speak(utterance)
+      } catch (error) {
+        console.warn('Error playing audio:', error)
+      }
     },
     [audioEnabled]
   )
 
   const cancelAudio = useCallback(() => {
     if (synthRef.current && audioEnabled) {
-      synthRef.current.cancel()
+      try {
+        synthRef.current.cancel()
+      } catch (error) {
+        console.warn('Error canceling audio:', error)
+      }
     }
   }, [audioEnabled])
 
