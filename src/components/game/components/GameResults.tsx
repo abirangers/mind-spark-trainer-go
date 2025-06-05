@@ -1,23 +1,27 @@
 import React from 'react'
+// Removed duplicate React import
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Play, BarChart3 } from 'lucide-react'
+import { PerformanceStats } from '../../../lib/gameUtils' // Corrected path
 
-import { getGameSessions } from '../utils'
+// import { getGameSessions } from '../utils' // Potentially remove if performanceStats is sufficient
 
 interface GameResultsProps {
   onPlayAgain: () => void
   onViewStats: () => void
   onBack: () => void
+  performanceStats: PerformanceStats | null; // Added from previous refactor step
 }
 
-export const GameResults: React.FC<GameResultsProps> = ({
+export const GameResults: React.FC<GameResultsProps> = React.memo(({
   onPlayAgain,
   onViewStats,
   onBack,
+  performanceStats,
 }) => {
-  const sessions = getGameSessions()
-  const lastSession = sessions[sessions.length - 1]
+  // Use performanceStats prop for the last session data
+  const lastSession = performanceStats;
 
   if (!lastSession) {
     return (
