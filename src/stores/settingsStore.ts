@@ -9,6 +9,19 @@ interface SettingsState {
   setFontSize: (size: string) => void
 }
 
+/**
+ * @store useSettingsStore
+ * @description Zustand store for managing global application settings.
+ * This store handles user preferences such as high contrast mode and font size,
+ * persisting them to localStorage and applying them dynamically to the document.
+ *
+ * @state {boolean} isHighContrastMode - Current state of high contrast mode.
+ * @action toggleHighContrastMode - Action to toggle high contrast mode on/off.
+ * @action setHighContrastMode - Action to set high contrast mode to a specific value.
+ * @state {string} fontSize - Current font size setting (e.g., 'default', 'large', 'xlarge').
+ * @action setFontSize - Action to set the application's font size.
+ */
+
 // Helper function to apply theme class to body
 const applyThemeToBody = (isHighContrast: boolean) => {
   if (typeof window !== 'undefined') {
@@ -37,15 +50,29 @@ export const useSettingsStore = create<SettingsState>()(
       isHighContrastMode: false,
       fontSize: 'default',
 
+      /**
+       * @action toggleHighContrastMode
+       * @description Toggles the high contrast mode on or off and applies the theme to the body.
+       */
       toggleHighContrastMode: () => {
         const newMode = !get().isHighContrastMode
         set({ isHighContrastMode: newMode })
         applyThemeToBody(newMode)
       },
+      /**
+       * @action setHighContrastMode
+       * @description Sets the high contrast mode to a specific value and applies the theme.
+       * @param {boolean} value - True to enable high contrast mode, false to disable.
+       */
       setHighContrastMode: value => {
         set({ isHighContrastMode: value })
         applyThemeToBody(value)
       },
+      /**
+       * @action setFontSize
+       * @description Sets the application's font size and applies it to the HTML element.
+       * @param {string} size - The desired font size (e.g., 'default', 'large', 'xlarge').
+       */
       setFontSize: size => {
         set({ fontSize: size })
         applyFontSizeToHtml(size)

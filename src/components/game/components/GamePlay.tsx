@@ -24,7 +24,7 @@ interface GamePlayProps {
   onResponse: (responseType: 'visual' | 'audio') => void
 }
 
-export const GamePlay: React.FC<GamePlayProps> = ({
+export const GamePlay: React.FC<GamePlayProps> = React.memo(({
   gameMode,
   nLevel,
   currentTrial,

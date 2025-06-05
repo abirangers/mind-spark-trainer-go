@@ -1,54 +1,37 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { toast } from 'sonner'
+import { useEffect, useCallback } from 'react'
+// No toast import here, handled by the hook
 import {
   GameInterfaceProps,
-  GameMode,
-  GameState,
-  GameSession,
-  PRACTICE_MODE,
-  PRACTICE_N_LEVEL,
-  PRACTICE_NUM_TRIALS,
-  AUDIO_LETTERS,
-  useAudioSynthesis,
+  // GameMode, // Handled by hook type
+  // GameState, // Handled by hook type
+  // GameSession, // Handled by hook type
+  // PRACTICE_MODE, // Used by hook
+  // PRACTICE_N_LEVEL, // Used by hook
+  // PRACTICE_NUM_TRIALS, // Used by hook
+  // AUDIO_LETTERS, // Used by hook
+  // useAudioSynthesis, // Used by hook
   GameSetup,
   GamePlay,
   GameResults,
 } from './game'
+import { useNBackGame, UseNBackGameProps } from '../hooks/useNBackGame' // Adjusted path
 
-// Internal interfaces for better type safety
-interface PerformanceStats {
-  visualAccuracy: number
-  audioAccuracy: number
-  overallAccuracy: number
-  avgResponseTime: number
-  actualVisualMatches: number
-  visualHits: number
-  visualMisses: number
-  visualFalseAlarms: number
-  visualCorrectRejections: number
-  actualAudioMatches: number
-  audioHits: number
-  audioMisses: number
-  audioFalseAlarms: number
-  audioCorrectRejections: number
-}
-
-interface StimulusData {
-  newPosition: number
-  newLetter: string
-  visualMatch: boolean
-  audioMatch: boolean
-}
-
+// Internal interfaces like PerformanceStats and StimulusData are no longer needed here
+// Their concerns are handled by gameUtils.ts and the hook itself.
 
 /**
- * GameInterface Component - Manages the N-back game flow and state
+ * @component GameInterface
+ * @description This component serves as the main interface for the N-Back game.
+ * It orchestrates the game flow by utilizing the `useNBackGame` hook for game logic
+ * and state management. It's responsible for rendering the correct sub-component
+ * (`GameSetup`, `GamePlay`, or `GameResults`) based on the current game state.
  *
- * This component has been refactored to improve maintainability by:
- * - Extracting complex logic into focused helper functions
- * - Adding proper TypeScript interfaces for type safety
- * - Separating concerns (session management, trial logic, performance calculation)
- * - Improving code readability and reducing cognitive complexity
+ * @param {GameInterfaceProps} props - Properties passed to the GameInterface component.
+ * @param {() => void} props.onBack - Callback function to navigate back from the game interface.
+ * @param {() => void} props.onViewStats - Callback function to navigate to the statistics view.
+ * @param {boolean} [props.isPracticeMode=false] - Flag indicating if the game is in practice mode.
+ * @param {() => void} [props.onPracticeComplete] - Callback function triggered when practice mode is completed.
+ * @returns {JSX.Element | null} The rendered game interface or null.
  */
 const GameInterface = ({
   onBack,
@@ -56,557 +39,134 @@ const GameInterface = ({
   isPracticeMode = false,
   onPracticeComplete,
 }: GameInterfaceProps) => {
-  const [gameMode, setGameMode] = useState<GameMode>(
-    isPracticeMode ? PRACTICE_MODE : 'single-visual'
-  )
-  const [gameState, setGameState] = useState<GameState>('setup')
-  const [nLevel, setNLevel] = useState<number>(isPracticeMode ? PRACTICE_N_LEVEL : 2)
-  const [currentTrial, setCurrentTrial] = useState(0)
-  const [numTrials, setNumTrials] = useState<number>(isPracticeMode ? PRACTICE_NUM_TRIALS : 20)
-  const [stimulusDurationMs, setStimulusDurationMs] = useState(3000)
-  const [audioEnabled, setAudioEnabled] = useState(true)
-
-  // Game state
-  const [visualSequence, setVisualSequence] = useState<number[]>([])
-  const [audioSequence, setAudioSequence] = useState<string[]>([])
-  const [currentPosition, setCurrentPosition] = useState<number | null>(null)
-  const [currentLetter, setCurrentLetter] = useState<string>('')
-  const [visualMatches, setVisualMatches] = useState<boolean[]>([])
-  const [audioMatches, setAudioMatches] = useState<boolean[]>([])
-  const [userVisualResponses, setUserVisualResponses] = useState<boolean[]>([])
-  const [userAudioResponses, setUserAudioResponses] = useState<boolean[]>([])
-  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false)
-  const [trialStartTime, setTrialStartTime] = useState<number>(0)
-  const [responseTimes, setResponseTimes] = useState<number[]>([])
-  const [visualResponseMadeThisTrial, setVisualResponseMadeThisTrial] = useState(false)
-  const [audioResponseMadeThisTrial, setAudioResponseMadeThisTrial] = useState(false)
-
-  // Store current trial's match status for reliable access in timeout
-  const currentTrialVisualMatchRef = useRef(false)
-  const currentTrialAudioMatchRef = useRef(false)
-
-  const trialTimeoutRef = useRef<NodeJS.Timeout>()
-  const startTrialRef = useRef<() => void>()
-  const postDualResponseDelayRef = useRef<NodeJS.Timeout>()
-  const sessionEndedRef = useRef(false) // Flag to prevent multiple endSession calls
-  const isPracticeModeRef = useRef(isPracticeMode) // Store initial practice mode state
-
-
-
-  // Use audio synthesis hook
-  const { playAudioLetter, cancelAudio } = useAudioSynthesis({ audioEnabled })
-
-  const generateStimulus = useCallback((): StimulusData => {
-    const newPosition = Math.floor(Math.random() * 9)
-    const newLetter = AUDIO_LETTERS[Math.floor(Math.random() * AUDIO_LETTERS.length)]
-
-    // Calculate matches BEFORE updating sequences
-    const visualMatch =
-      visualSequence.length >= nLevel &&
-      visualSequence[visualSequence.length - nLevel] === newPosition
-    const audioMatch =
-      audioSequence.length >= nLevel && audioSequence[audioSequence.length - nLevel] === newLetter
-
-    // Update sequences AFTER calculating matches
-    setVisualSequence(prev => [...prev, newPosition])
-    setAudioSequence(prev => [...prev, newLetter])
-    setVisualMatches(prev => [...prev, visualMatch])
-    setAudioMatches(prev => [...prev, audioMatch])
-
-    return { newPosition, newLetter, visualMatch, audioMatch }
-  }, [visualSequence, audioSequence, nLevel])
-
-
-
-  /**
-   * Calculates comprehensive performance statistics for the current session
-   * @returns PerformanceStats object with accuracy metrics and detailed counts
-   */
-  const calculatePerformanceStats = useCallback((): PerformanceStats => {
-    let visualCorrect = 0
-    let audioCorrect = 0
-    let actualVisualMatches = 0
-    let visualHits = 0
-    let visualMisses = 0
-    let visualFalseAlarms = 0
-    let visualCorrectRejections = 0
-    let actualAudioMatches = 0
-    let audioHits = 0
-    let audioMisses = 0
-    let audioFalseAlarms = 0
-    let audioCorrectRejections = 0
-
-    for (let i = 0; i < numTrials; i++) {
-      const visualExpected = visualMatches[i] || false
-      const audioExpected = audioMatches[i] || false
-      const visualResponse = userVisualResponses[i] || false
-      const audioResponse = userAudioResponses[i] || false
-
-      if (gameMode === 'single-visual' || gameMode === 'dual') {
-        if (visualExpected) {
-          actualVisualMatches++
-        }
-        if (visualExpected && visualResponse) {
-          visualHits++
-        } else if (visualExpected && !visualResponse) {
-          visualMisses++
-        } else if (!visualExpected && visualResponse) {
-          visualFalseAlarms++
-        } else if (!visualExpected && !visualResponse) {
-          visualCorrectRejections++
-        }
-      }
-
-      if (gameMode === 'single-audio' || gameMode === 'dual') {
-        if (audioExpected) {
-          actualAudioMatches++
-        }
-        if (audioExpected && audioResponse) {
-          audioHits++
-        } else if (audioExpected && !audioResponse) {
-          audioMisses++
-        } else if (!audioExpected && audioResponse) {
-          audioFalseAlarms++
-        } else if (!audioExpected && !audioResponse) {
-          audioCorrectRejections++
-        }
-      }
-
-      if (visualExpected === visualResponse) {
-        visualCorrect++
-      }
-      if (audioExpected === audioResponse) {
-        audioCorrect++
-      }
-    }
-
-    const visualAccuracy = numTrials > 0 ? (visualCorrect / numTrials) * 100 : 0
-    const audioAccuracy = numTrials > 0 ? (audioCorrect / numTrials) * 100 : 0
-    const overallAccuracy =
-      gameMode === 'dual'
-        ? (visualAccuracy + audioAccuracy) / 2
-        : gameMode === 'single-visual'
-          ? visualAccuracy
-          : audioAccuracy
-
-    const avgResponseTime = responseTimes.length > 0
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-      : 0
-
-    return {
-      visualAccuracy,
-      audioAccuracy,
-      overallAccuracy,
-      avgResponseTime,
-      actualVisualMatches,
-      visualHits,
-      visualMisses,
-      visualFalseAlarms,
-      visualCorrectRejections,
-      actualAudioMatches,
-      audioHits,
-      audioMisses,
-      audioFalseAlarms,
-      audioCorrectRejections,
-    }
-  }, [
-    numTrials,
-    visualMatches,
-    audioMatches,
-    userVisualResponses,
-    userAudioResponses,
-    responseTimes,
-    gameMode,
-  ])
-
-  /**
-   * Handles the completion of practice mode sessions
-   * Cleans up state and triggers the completion callback
-   */
-  const handlePracticeCompletion = useCallback(() => {
-    sessionEndedRef.current = true
-
-    // Clear any ongoing timeouts
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current)
-    }
-    if (postDualResponseDelayRef.current) {
-      clearTimeout(postDualResponseDelayRef.current)
-    }
-
-    // Reset game state
-    setIsWaitingForResponse(false)
-    setCurrentPosition(null)
-    setCurrentLetter('')
-    setGameState('setup')
-
-    toast.success('Practice Complete! Well done!', { duration: 3000 })
-
-    // Use setTimeout to ensure state changes are processed
-    setTimeout(() => {
+  const hookProps: UseNBackGameProps = {
+    isPracticeMode,
+    // Pass onPracticeComplete from GameInterfaceProps to the hook
+    // The hook will call this, and GameInterface can decide what to do.
+    onPracticeComplete: () => {
       if (onPracticeComplete) {
-        onPracticeComplete()
+        onPracticeComplete() // Call the original callback if provided
       }
-    }, 100)
-  }, [onPracticeComplete])
-
-  // Helper function to save game session
-  const saveGameSession = useCallback((stats: PerformanceStats): number => {
-    const session: GameSession = {
-      trials: numTrials,
-      nLevel,
-      accuracy: stats.overallAccuracy,
-      visualAccuracy: stats.visualAccuracy,
-      audioAccuracy: stats.audioAccuracy,
-      averageResponseTime: stats.avgResponseTime,
-      mode: gameMode,
-      timestamp: new Date().toISOString(),
-      actualVisualMatches: stats.actualVisualMatches,
-      visualHits: stats.visualHits,
-      visualMisses: stats.visualMisses,
-      visualFalseAlarms: stats.visualFalseAlarms,
-      visualCorrectRejections: stats.visualCorrectRejections,
-      actualAudioMatches: stats.actualAudioMatches,
-      audioHits: stats.audioHits,
-      audioMisses: stats.audioMisses,
-      audioFalseAlarms: stats.audioFalseAlarms,
-      audioCorrectRejections: stats.audioCorrectRejections,
-    }
-
-    const sessions = JSON.parse(localStorage.getItem('nback-sessions') || '[]')
-    sessions.push(session)
-    localStorage.setItem('nback-sessions', JSON.stringify(sessions))
-
-    return stats.overallAccuracy
-  }, [numTrials, nLevel, gameMode])
-
-  const endSession = useCallback(() => {
-    // Prevent multiple calls to endSession
-    if (sessionEndedRef.current) {
-      return
-    }
-
-    // Handle practice mode completion separately
-    if (isPracticeModeRef.current) {
-      handlePracticeCompletion()
-      return
-    }
-
-    // Set flag for normal mode
-    sessionEndedRef.current = true
-    setGameState('results')
-
-    // Calculate and save session
-    const stats = calculatePerformanceStats()
-    const accuracy = saveGameSession(stats)
-    toast.success(`Session Complete! ${accuracy.toFixed(1)}% accuracy`)
-  }, [handlePracticeCompletion, calculatePerformanceStats, saveGameSession])
-
-  const handleTrialTimeout = useCallback(() => {
-    if (isPracticeMode) {
-      // Use the reliable current trial match status instead of array lookup
-      const visualExpected = currentTrialVisualMatchRef.current
-
-
-
-      // Since practice mode is 'single-visual'
-      if (visualExpected) {
-        toast.error('Missed Match!', { duration: 1500 })
-      } else {
-        toast.info('Correct: No match there.', { duration: 1500 })
-      }
-    }
-
-    setIsWaitingForResponse(false)
-    setCurrentPosition(null)
-    setCurrentLetter('')
-
-    setResponseTimes(prev => [...prev, stimulusDurationMs])
-
-    setCurrentTrial(prev => {
-      const next = prev + 1
-      if (next < numTrials) {
-        setTimeout(() => startTrialRef.current?.(), 1000)
-      }
-      // No direct call to endSession() here
-      return next
-    })
-  }, [numTrials, stimulusDurationMs, isPracticeMode])
-
-  const startTrial = useCallback(() => {
-    const { newPosition, newLetter, visualMatch, audioMatch } = generateStimulus()
-
-    setCurrentPosition(newPosition)
-    setCurrentLetter(newLetter)
-    setVisualResponseMadeThisTrial(false)
-    setAudioResponseMadeThisTrial(false)
-    setIsWaitingForResponse(true)
-    setTrialStartTime(Date.now())
-
-    // Store match status for this trial
-    currentTrialVisualMatchRef.current = visualMatch
-    currentTrialAudioMatchRef.current = audioMatch
-
-
-
-    if ((gameMode === 'single-audio' || gameMode === 'dual') && audioEnabled) {
-      playAudioLetter(newLetter)
-    }
-
-    trialTimeoutRef.current = setTimeout(() => {
-      handleTrialTimeout()
-    }, stimulusDurationMs)
-  }, [
-    generateStimulus,
-    gameMode,
-    audioEnabled,
-    playAudioLetter,
-    handleTrialTimeout,
-    stimulusDurationMs,
-  ])
-
-  useEffect(() => {
-    startTrialRef.current = startTrial
-  }, [startTrial])
-
-  // Helper function to advance to next trial
-  const advanceToNextTrial = useCallback(() => {
-    setCurrentPosition(null)
-    setCurrentLetter('')
-    setCurrentTrial(prev => {
-      const next = prev + 1
-      if (next < numTrials) {
-        setTimeout(() => startTrialRef.current?.(), 1000)
-      }
-      return next
-    })
-  }, [numTrials])
-
-  // Helper function to provide practice feedback
-  const providePracticeFeedback = useCallback((responseType: 'visual' | 'audio', isFirstResponse: boolean) => {
-    if (!isPracticeMode || !isFirstResponse) {
-      return
-    }
-
-    if (responseType === 'visual') {
-      const visualExpected = currentTrialVisualMatchRef.current
-      if (visualExpected) {
-        toast.success('Correct Match!', { duration: 1500 })
-      } else {
-        toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 })
-      }
-    }
-  }, [isPracticeMode])
-
-  const handleResponse = useCallback(
-    (responseType: 'visual' | 'audio') => {
-      if (!isWaitingForResponse) {
-        return
-      }
-
-      const responseTime = Date.now() - trialStartTime
-      setResponseTimes(prev => [...prev, responseTime])
-
-      const trialIndexToUpdate = currentTrial
-      let currentVisualResponseMade = visualResponseMadeThisTrial
-      let currentAudioResponseMade = audioResponseMadeThisTrial
-      let isFirstResponse = false
-
-      if (responseType === 'visual') {
-        isFirstResponse = !userVisualResponses[trialIndexToUpdate]
-        setUserVisualResponses(prevResponses => {
-          const newResponses = [...prevResponses]
-          if (trialIndexToUpdate < newResponses.length) {
-            newResponses[trialIndexToUpdate] = true
-          }
-          return newResponses
-        })
-        setVisualResponseMadeThisTrial(true)
-        currentVisualResponseMade = true
-      } else {
-        isFirstResponse = !userAudioResponses[trialIndexToUpdate]
-        setUserAudioResponses(prevResponses => {
-          const newResponses = [...prevResponses]
-          if (trialIndexToUpdate < newResponses.length) {
-            newResponses[trialIndexToUpdate] = true
-          }
-          return newResponses
-        })
-        setAudioResponseMadeThisTrial(true)
-        currentAudioResponseMade = true
-      }
-
-      // Provide feedback for practice mode
-      providePracticeFeedback(responseType, isFirstResponse)
-
-      // Handle trial advancement based on game mode
-      const shouldAdvanceImmediately = gameMode !== 'dual' ||
-        (currentVisualResponseMade && currentAudioResponseMade)
-
-      if (shouldAdvanceImmediately) {
-        setIsWaitingForResponse(false)
-        if (trialTimeoutRef.current) {
-          clearTimeout(trialTimeoutRef.current)
-        }
-
-        const delay = gameMode === 'dual' ? 750 : 0
-        if (delay > 0) {
-          postDualResponseDelayRef.current = setTimeout(advanceToNextTrial, delay)
-        } else {
-          advanceToNextTrial()
-        }
-      }
+      // After practice, GameInterface might want to reset or navigate.
+      // For now, we assume onPracticeComplete handles navigation or
+      // the parent component does. If we want to go to 'setup' or 'results':
+      // game.resetGame(); // or game.endSessionForResults();
     },
-    [
-      isWaitingForResponse,
-      trialStartTime,
-      currentTrial,
-      visualResponseMadeThisTrial,
-      audioResponseMadeThisTrial,
-      gameMode,
-      userVisualResponses,
-      userAudioResponses,
-      providePracticeFeedback,
-      advanceToNextTrial,
-    ]
-  )
-
-  // Effect to end session when all trials are completed
-  useEffect(() => {
-    if (gameState === 'playing' && currentTrial === numTrials) {
-      endSession()
-    }
-  }, [gameState, currentTrial, numTrials, endSession])
+    // initial settings can be passed here if needed, otherwise hook uses defaults
+    // initialGameMode: 'single-visual',
+    // initialNLevel: 2,
+    // initialNumTrials: 20,
+    // initialStimulusDurationMs: 3000,
+    // initialAudioEnabled: true,
+  }
+  const game = useNBackGame(hookProps)
 
   // Add keyboard event listener
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (gameState === 'playing' && isWaitingForResponse) {
+      if (game.gameState === 'playing' && game.isWaitingForResponse) {
         if (
           event.key.toLowerCase() === 'a' &&
-          (gameMode === 'single-visual' || gameMode === 'dual')
+          (game.gameMode === 'single-visual' || game.gameMode === 'dual')
         ) {
-          handleResponse('visual')
+          game.handleResponse('visual')
         } else if (
           event.key.toLowerCase() === 'l' &&
-          (gameMode === 'single-audio' || gameMode === 'dual')
+          (game.gameMode === 'single-audio' || game.gameMode === 'dual')
         ) {
-          handleResponse('audio')
+          game.handleResponse('audio')
         }
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [gameState, isWaitingForResponse, gameMode, handleResponse])
+  }, [game.gameState, game.isWaitingForResponse, game.gameMode, game.handleResponse])
 
-  // Helper function to initialize game state
-  const initializeGameState = useCallback(() => {
-    setCurrentTrial(0)
-    setVisualSequence([])
-    setAudioSequence([])
-    setVisualMatches([])
-    setAudioMatches([])
-    setUserVisualResponses(Array(numTrials).fill(false))
-    setUserAudioResponses(Array(numTrials).fill(false))
-    setResponseTimes([])
-    setCurrentPosition(null)
-    setCurrentLetter('')
-    setIsWaitingForResponse(false)
-    setVisualResponseMadeThisTrial(false)
-    setAudioResponseMadeThisTrial(false)
-  }, [numTrials])
 
-  // Helper function to clear timeouts
-  const clearAllTimeouts = useCallback(() => {
-    if (trialTimeoutRef.current) {
-      clearTimeout(trialTimeoutRef.current)
+  // This callback is passed to the hook.
+  // When the hook calls it, this function in GameInterface runs.
+  // GameInterface can then decide further actions, like navigating away or resetting.
+  const handlePracticeHasCompleted = useCallback(() => {
+    if (onPracticeComplete) {
+      onPracticeComplete();
     }
-    if (postDualResponseDelayRef.current) {
-      clearTimeout(postDualResponseDelayRef.current)
-    }
-  }, [])
+    // Example: Automatically reset to setup screen after practice.
+    // Or, you could navigate to a different screen or show a summary.
+    // game.resetGame(); // This would take user back to setup screen.
+    // Or if there's a specific "practice results" or next step:
+    // game.endSessionForResults(); // if practice should show a results screen
+  }, [onPracticeComplete /*, game.resetGame, game.endSessionForResults */]);
 
-  const startGame = useCallback(() => {
-    sessionEndedRef.current = false
-    isPracticeModeRef.current = isPracticeMode
-    setGameState('playing')
-    initializeGameState()
-    setTimeout(() => startTrialRef.current?.(), 100)
-  }, [isPracticeMode, initializeGameState])
+  // Update hook props if isPracticeMode or onPracticeComplete changes
+  // This is tricky because the hook takes initial props.
+  // For a prop like `isPracticeMode` that dictates initial setup,
+  // changing it after the hook is initialized might require resetting the hook or
+  // specific logic within the hook to handle it. The current hook's useEffect for
+  // isPracticeModeRef.current = isPracticeMode; helps.
+  // The onPracticeComplete callback is wrapped when passed to the hook.
 
-  const resetGame = useCallback(() => {
-    sessionEndedRef.current = false
-    setGameState('setup')
-    clearAllTimeouts()
-    cancelAudio()
-    initializeGameState()
-  }, [clearAllTimeouts, cancelAudio, initializeGameState])
-
-  // useEffect to auto-start game in practice mode (but not after completion)
-  useEffect(() => {
-    if (isPracticeMode && gameState === 'setup' && !sessionEndedRef.current) {
-      startGame()
-    }
-  }, [isPracticeMode, gameState, startGame])
-
-  if (gameState === 'setup') {
+  if (game.gameState === 'setup') {
+    // In practice mode, the hook auto-starts. GameInterface shouldn't render GameSetup.
+    // The hook's `useEffect` for practice mode handles `startGameHook`.
+    // So, if it's practice mode and setup, it implies it's about to auto-start or has just been reset.
     if (isPracticeMode) {
-      return null
+      // Potentially show a loading indicator or null while practice auto-starts
+      return null // Or a <PracticeStartingScreen />
     }
     return (
       <GameSetup
-        gameMode={gameMode}
-        setGameMode={setGameMode}
-        nLevel={nLevel}
-        setNLevel={setNLevel}
-        numTrials={numTrials}
-        setNumTrials={setNumTrials}
-        stimulusDurationMs={stimulusDurationMs}
-        setStimulusDurationMs={setStimulusDurationMs}
-        audioEnabled={audioEnabled}
-        setAudioEnabled={setAudioEnabled}
-        isPracticeMode={isPracticeMode}
-        onBack={onBack}
-        onStartGame={startGame}
+        gameMode={game.gameMode}
+        setGameMode={game.setGameMode}
+        nLevel={game.nLevel}
+        setNLevel={game.setNLevel}
+        numTrials={game.numTrials}
+        setNumTrials={game.setNumTrials}
+        stimulusDurationMs={game.stimulusDurationMs}
+        setStimulusDurationMs={game.setStimulusDurationMs}
+        audioEnabled={game.audioEnabled}
+        setAudioEnabled={game.setAudioEnabled}
+        isPracticeMode={isPracticeMode} // Pass the original prop
+        onBack={onBack} // Prop from parent
+        onStartGame={game.startGame} // Action from hook
       />
     )
   }
 
-  if (gameState === 'playing') {
+  if (game.gameState === 'playing') {
     return (
       <GamePlay
-        gameMode={gameMode}
-        nLevel={nLevel}
-        currentTrial={currentTrial}
-        numTrials={numTrials}
-        currentPosition={currentPosition}
-        currentLetter={currentLetter}
-        isWaitingForResponse={isWaitingForResponse}
-        visualResponseMadeThisTrial={visualResponseMadeThisTrial}
-        audioResponseMadeThisTrial={audioResponseMadeThisTrial}
-        onPause={resetGame}
-        onResponse={handleResponse}
+        gameMode={game.gameMode}
+        nLevel={game.nLevel}
+        currentTrial={game.currentTrial}
+        numTrials={game.numTrials}
+        currentPosition={game.currentPosition}
+        currentLetter={game.currentLetter}
+        isWaitingForResponse={game.isWaitingForResponse}
+        visualResponseMadeThisTrial={game.visualResponseMadeThisTrial}
+        audioResponseMadeThisTrial={game.audioResponseMadeThisTrial}
+        onPause={game.resetGame} // Or a specific pause handler if developed in hook
+        onResponse={game.handleResponse}
       />
     )
   }
 
-  if (gameState === 'results') {
-    // Practice mode should never reach results state - it should have been handled by endSession early return
-    if (isPracticeMode) {
-      return null
-    }
+  if (game.gameState === 'results') {
+    // The hook handles practice mode completion before reaching 'results'.
+    // So, no need for an `isPracticeMode` check here for rendering GameResults.
+    // if (isPracticeMode) return null; // This should not be hit if hook logic is correct
 
     return (
       <GameResults
-        onPlayAgain={resetGame}
-        onViewStats={onViewStats}
-        onBack={onBack}
+        onPlayAgain={game.resetGame} // Action from hook
+        onViewStats={onViewStats} // Prop from parent
+        onBack={onBack} // Prop from parent
+        performanceStats={game.performanceStats} // Pass stats to GameResults
       />
     )
   }
 
-  return null
+  return null // Should not be reached if gameState is always one of the above
 }
 
 export default GameInterface

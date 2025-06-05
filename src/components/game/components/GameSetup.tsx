@@ -31,7 +31,7 @@ interface GameSetupProps {
   onStartGame: () => void
 }
 
-export const GameSetup: React.FC<GameSetupProps> = ({
+export const GameSetup: React.FC<GameSetupProps> = React.memo(({
   gameMode,
   setGameMode,
   nLevel,
