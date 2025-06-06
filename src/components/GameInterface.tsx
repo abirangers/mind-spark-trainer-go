@@ -393,7 +393,7 @@ const GameInterface = ({
       if (visualExpected) {
         toast.success('Correct Match!', { duration: 1500 })
       } else {
-        toast.warning("Oops! That wasn't a match (False Alarm).", { duration: 1500 })
+        toast.warning("Oops! That wasn't a match.", { duration: 1500 })
       }
     }
   }, [isPracticeMode])
